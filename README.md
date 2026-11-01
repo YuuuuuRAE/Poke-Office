@@ -46,6 +46,7 @@ git clone https://github.com/YuuuuuRAE/poke-office.git
 cd poke-office
 npm install    # 포켓몬 스프라이트를 자동으로 받아요 (약 10MB, 몇 초)
 npm start      # http://127.0.0.1:4321
+npm run hooks  # (다른 터미널에서) Claude Code에 연결
 ```
 
 브라우저에서 **http://127.0.0.1:4321** 을 열면 데모가 돌아가요.
@@ -71,8 +72,22 @@ npm start      # http://127.0.0.1:4321
 
 ## Claude Code 연결
 
-`~/.claude/settings.json`(윈도우: `C:\Users\<이름>\.claude\settings.json`)에 아래를 넣으세요.
-`/절대경로/poke-office` 는 이 폴더의 실제 경로로 바꾸세요.
+poke-office 폴더에서 한 줄이면 돼요.
+
+```bash
+npm run hooks
+```
+
+`~/.claude/settings.json` 에 훅 8개를 넣어줘요. 기존 설정과 다른 훅은 그대로 두고 합치며, 바꾸기 전에 백업 파일(`settings.json.bak-날짜`)을 만들어요. 여러 번 실행해도 중복으로 들어가지 않아요.
+
+- 폴더를 옮겼다면 다시 실행하세요.
+- 빼고 싶으면 `npm run hooks:remove` (포켓 오피스 훅만 지워요).
+- Claude Code가 이미 켜져 있었다면 새로 실행해야 설정을 읽어요. Claude Code 안에서 `/hooks` 로 들어갔는지 볼 수 있어요.
+
+<details>
+<summary>직접 설정하기 (수동)</summary>
+
+`~/.claude/settings.json`(윈도우: `C:\Users\<이름>\.claude\settings.json`)에 아래를 넣으세요. `/절대경로/poke-office` 는 이 폴더의 실제 경로(`pwd` 로 확인)로 바꾸세요.
 
 ```json
 {
@@ -88,6 +103,7 @@ npm start      # http://127.0.0.1:4321
   }
 }
 ```
+</details>
 
 `npm start` 로 서버를 켜둔 채 Claude Code를 쓰면 화면이 **LIVE** 로 바뀌고 실제 작업을 따라 움직여요.
 
@@ -108,6 +124,7 @@ index.html                  화면 (Canvas, 의존성 없음)
 server.mjs                  로컬 서버: 화면, /sprites, /api/names, POST /events, GET /stream (SSE)
 hook.mjs                    Claude Code 훅 입력 → OfficeEvent 로 변환해 서버로 전송
 scripts/setup-sprites.mjs   PokeAPI 스프라이트·이름 데이터 sparse checkout
+scripts/install-hooks.mjs   ~/.claude/settings.json 에 훅 추가/제거 (npm run hooks)
 docs/                       README 이미지
 vendor/                     (자동 생성, git 제외) 받은 스프라이트와 names.json
 ```
