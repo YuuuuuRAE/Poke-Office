@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+// Claude Code 훅 → 포켓 오피스 서버.
+// stdin으로 받은 훅 JSON을 OfficeEvent로 바꿔 POST합니다.
+// 서버가 꺼져 있어도 조용히 끝나며(exit 0) Claude Code를 막지 않습니다.
+const PORT = +(process.env.POKE_OFFICE_PORT || 4321);
+
+const cut = (s, n = 40) => (s == null ? '' : String(s).replace(/\s+/g, ' ').slice(0, n));
+const base = (f) => (f ? String(f).split(/[\\/]/).pop() : '');
+
+function detail(tool, i = {}) {
+  if (i.file_path || i.notebook_path) return base(i.file_path || i.notebook_path);
+  if (i.command) return cut(i.command);
+  if (i.pattern) return cut(i.pattern);
+  if (i.url) return cut(i.url.replace(/^https?:\/\//, ''));
+  if (i.query) return cut(i.query);
+  if (i.description) return cut(i.description);
+  if (Array.isArray(i.todos)) return `할 일 ${i.todos.length}개`;
+  return tool || '';
+}
+
+function failed(r) {
+  if (!r || typeof r !== 'object') return false;
+  return !!(r.is_error || r.error || r.interrupted || (typeof r.exit_code === 'number' && r.exit_code !== 0));
+}
+
+function toEvent(h) {
+  const tool = h.tool_name;
+  const common = { ts: Date.now(), session: h.session_id, cwd: h.cwd, agent: 'main', tool, id: h.tool_use_id };
+  const isTask = tool === 'Task' || tool === 'Agent';
+  switch (h.hook_event_name) {
+    case 'SessionStart': return { ...common, kind: 'session_start' };
+    case 'UserPromptSubmit': return { ...common, kind: 'prompt', detail: cut(h.prompt, 30) };
+    case 'PreToolUse':
+      return isTask
+        ? { ...common, kind: 'subagent_start', detail: cut(h.tool_input?.description || h.tool_input?.subagent_type || '서브에이전트', 20) }
+        : { ...common, kind: 'tool_start', detail: detail(tool, h.tool_input),
+            ...(Array.isArray(h.tool_input?.todos) ? { todos: h.tool_input.todos.map((t) => ({ text: cut(t.content || t.subject, 30), status: t.status })) } : {}) };
+    case 'PostToolUse':
+      return isTask ? null : { ...common, kind: 'tool_end', ok: !failed(h.tool_response) };
+    case 'PostToolUseFailure':
+      return isTask ? null : { ...common, kind: 'tool_end', ok: false };
+    case 'SubagentStop': return { ...common, kind: 'subagent_end' };
+    case 'Notification': return { ...common, kind: 'notify', detail: cut(h.message, 40) };
+    case 'Stop': return { ...common, kind: 'stop' };
+    case 'SessionEnd': return { ...common, kind: 'session_end' };
+    default: return null;
+  }
+}
+
+let raw = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => (raw += c));
+process.stdin.on('end', async () => {
+  try {
+    const ev = toEvent(JSON.parse(raw || '{}'));
+    if (ev) {
+      await fetch(`http://127.0.0.1:${PORT}/events`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(ev),
+        signal: AbortSignal.timeout(800),
+      });
+    }
+  } catch { /* 서버가 꺼져 있으면 무시 */ }
+  process.exit(0);
+});
