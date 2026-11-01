@@ -1,0 +1,27 @@
+{
+  "name": "poke-office",
+  "version": "0.2.0",
+  "description": "Claude Code 에이전트와 툴을 트레이너와 몬스터로 보여주는 픽셀 오피스",
+  "type": "module",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/YuuuuuRAE/poke-office.git" },
+  "bin": {
+    "poke-office": "server.mjs",
+    "poke-office-hook": "hook.mjs"
+  },
+  "scripts": {
+    "postinstall": "node scripts/setup-sprites.mjs --auto",
+    "setup": "node scripts/setup-sprites.mjs",
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.html",
+    "server.mjs",
+    "hook.mjs",
+    "scripts/",
+    "README.md"
+  ]
+}
