@@ -17,7 +17,8 @@
     "setup": "node scripts/setup-sprites.mjs",
     "start": "node server.mjs",
     "hooks": "node scripts/install-hooks.mjs",
-    "hooks:remove": "node scripts/install-hooks.mjs --remove"
+    "hooks:remove": "node scripts/install-hooks.mjs --remove",
+    "doctor": "node scripts/doctor.mjs"
   },
   "engines": {
     "node": ">=18"

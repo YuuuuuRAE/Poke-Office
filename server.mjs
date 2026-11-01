@@ -10,6 +10,7 @@ import { createServer } from 'node:http';
 import { existsSync, readFileSync, createReadStream } from 'node:fs';
 import { dirname, join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.POKE_OFFICE_PORT || 4321);
@@ -17,6 +18,12 @@ const HOST = '127.0.0.1'; // 외부에 열지 않음. 원격 접속은 코드서
 const SPR_DIR = join(ROOT, 'vendor/sprites/sprites/pokemon');
 const NAMES = join(ROOT, 'vendor/names.json');
 const MIME = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.json': 'application/json', '.js': 'text/javascript' };
+
+// 스프라이트가 없으면 시작할 때 한 번 받아 둠 (npm install 단계에서 실패했을 때 대비)
+if (!existsSync(join(SPR_DIR, '25.png')) && !process.env.POKE_OFFICE_NO_SETUP) {
+  console.log('[poke-office] 스프라이트가 없어서 지금 받아요…');
+  spawnSync(process.execPath, [join(ROOT, 'scripts/setup-sprites.mjs')], { stdio: 'inherit' });
+}
 
 const clients = new Set();
 const recent = []; // 새로 접속한 화면에 최근 이벤트 몇 개를 다시 보내지는 않음(상태 꼬임 방지). 로그용.
@@ -81,5 +88,5 @@ server.listen(PORT, HOST, () => {
   const spr = existsSync(join(SPR_DIR, '25.png'));
   console.log(`\n  포켓 오피스: http://${HOST}:${PORT}`);
   console.log(`  스프라이트: ${spr ? '준비됨' : '없음 — npm run setup'}`);
-  console.log(`  훅 연결: README의 settings.json 예시를 ~/.claude/settings.json 에 넣으세요.\n`);
+  console.log(`  Claude Code 연결: npm run hooks   ·   안 될 때: npm run doctor\n`);
 });

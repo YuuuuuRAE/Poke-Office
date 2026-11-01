@@ -69,7 +69,7 @@ function main() {
   say('한국어/영어 이름 데이터를 받는 중…');
   sparseClone('https://github.com/PokeAPI/pokeapi.git', DATA, ['/data/v2/csv/pokemon_species_names.csv']);
   const n = buildNames();
-  say(`완료: 포켓몬 ${n}종. \`npm start\` 후 화면의 '스프라이트' 탭에서 원하는 포켓몬으로 바꾸세요.`);
+  say(`완료: 포켓몬 ${n}종. \`npm start\` 후 화면 오른쪽 '포켓몬 팀' 탭에서 원하는 포켓몬으로 바꾸세요.`);
 }
 
 try { main(); }
