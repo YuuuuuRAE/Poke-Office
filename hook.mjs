@@ -15,6 +15,7 @@ function detail(tool, i = {}) {
   if (i.query) return cut(i.query);
   if (i.description) return cut(i.description);
   if (Array.isArray(i.todos)) return `할 일 ${i.todos.length}개`;
+  if (/^mcp__/.test(tool || '')) { const v = Object.values(i).find((x) => typeof x === 'string' && x.trim()); if (v) return cut(v); }
   return tool || '';
 }
 
@@ -34,9 +35,10 @@ function toEvent(h) {
       return isTask
         ? { ...common, kind: 'subagent_start', detail: cut(h.tool_input?.description || h.tool_input?.subagent_type || '서브에이전트', 20) }
         : { ...common, kind: 'tool_start', detail: detail(tool, h.tool_input),
+            ...(h.tool_input?.command ? { cmd: cut(h.tool_input.command, 300) } : {}),
             ...(Array.isArray(h.tool_input?.todos) ? { todos: h.tool_input.todos.map((t) => ({ text: cut(t.content || t.subject, 30), status: t.status })) } : {}) };
     case 'PostToolUse':
-      return isTask ? null : { ...common, kind: 'tool_end', ok: !failed(h.tool_response) };
+      return isTask ? null : { ...common, kind: 'tool_end', ok: !failed(h.tool_response), ...(h.tool_input?.command ? { cmd: cut(h.tool_input.command, 300) } : {}) };
     case 'PostToolUseFailure':
       return isTask ? null : { ...common, kind: 'tool_end', ok: false };
     case 'SubagentStop': return { ...common, kind: 'subagent_end' };
