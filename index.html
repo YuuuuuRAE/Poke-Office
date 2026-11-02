@@ -49,9 +49,6 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .wrow .tm{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--amber);text-align:right;line-height:1.8}
 .room{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;margin-right:4px;color:#fff}
 .empty{text-align:center;padding:14px 6px;color:var(--quiet);font-size:13px;line-height:1.6}
-.inject{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.inject button{font-size:11.5px;padding:6px 2px;display:flex;flex-direction:column;align-items:center;gap:2px}
-.inject canvas{width:34px;height:34px;image-rendering:pixelated}
 .alert{display:none;margin-bottom:12px;padding:12px;border:3px solid var(--amber);border-radius:12px;background:#3a2e12;color:#ffe9a8;box-shadow:0 4px 0 #000}
 .alert.show{display:block}.alert .row{display:flex;gap:8px;margin-top:10px}.alert .row button{flex:1}
 .tabs{display:flex;border-bottom:3px dashed var(--line)}
@@ -85,10 +82,10 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 <div class="wrap">
   <header>
     <div>
-      <div class="kicker">CLAUDE CODE · POCKET OFFICE · v7</div>
+      <div class="kicker">CLAUDE CODE · POCKET OFFICE · v8</div>
       <h1>포켓몬이 일하는 <span>가상 사무실</span></h1>
     </div>
-    <div class="chip" id="modeChip">DEMO</div>
+    <div class="chip" id="modeChip" style="display:none">LIVE</div>
   </header>
 
   <div class="grid">
@@ -102,9 +99,6 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       <div class="stage"><canvas id="office" width="2048" height="1280" aria-label="픽셀 사무실"></canvas></div>
       <div id="dlgBox"><i id="dlgDot"></i><span id="dlgText"></span></div>
       <div class="below">
-        <button class="px" id="play">❚❚ PAUSE</button>
-        <div class="speed"><button class="px on" data-s="1">1x</button><button class="px" data-s="2">2x</button><button class="px" data-s="4">4x</button></div>
-        <button id="demoBtn" class="on">데모 ON</button>
         <button id="zoomBtn">🔍 확대</button>
         <div class="info" id="info">포켓몬이나 트레이너를 탭해 보세요.</div>
       </div>
@@ -125,7 +119,7 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
         <div class="tabs">
           <button class="on" data-tab="team">포켓몬 팀</button>
           <button data-tab="log">활동 기록</button>
-          <button data-tab="set">설정·테스트</button>
+          <button data-tab="set">연결</button>
         </div>
         <div class="tab on" id="tab-team">
           <div id="srcState" class="muted" style="margin:0 0 10px;padding:8px 10px;border:2px dashed var(--line);border-radius:10px"></div>
@@ -145,14 +139,11 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
         <div class="tab log" id="tab-log"></div>
         <div class="tab" id="tab-set">
           <div class="muted" style="margin-bottom:6px">연결 상태</div>
-          <p style="margin:0 0 10px;font-size:13.5px" id="liveState">로컬 서버에 연결되지 않았어요. 지금은 데모 화면이에요.</p>
+          <p style="margin:0 0 10px;font-size:13.5px" id="liveState">로컬 서버에 연결되지 않았어요.</p>
 <pre>npm install     # 처음 한 번 (스프라이트 자동 다운로드)
 npm run hooks   # 처음 한 번 (Claude Code 연결)
 npm start       # 매번 → http://127.0.0.1:4321
 npm run doctor  # 안 될 때 진단</pre>
-          <div class="muted" style="margin:14px 0 6px">테스트 이벤트 <span style="opacity:.8">— 가짜 이벤트로 화면만 움직여 봐요 (토큰 사용 없음)</span></div>
-          <div class="muted" style="margin-bottom:6px;font-size:12px">보낼 곳: <b id="injectTo"></b></div>
-          <div class="inject" id="inject"></div>
         </div>
       </section>
     </div>
@@ -534,7 +525,7 @@ function finishJob(town,mo){const j=mo.job;town.jobs=town.jobs.filter(x=>x!==j);
 function townStatus(t){const st=[...t.trainers.values()];if(st.some(s=>s.state==='wait'))return'wait';if(t.jobs.length||st.some(s=>s.state==='think'||s.state==='pin'))return'work';return'idle';}
 function renderTowns(){const el=$('towns');el.innerHTML='';towns.forEach((t,name)=>{const b=document.createElement('button');if(name===active)b.classList.add('on');
   b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=name;b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
-  const t=towns.get(active);if(t){const first=[...t.trainers.values()][0];$('injectTo').textContent=`${active} · ${first?tname(first):'새 세션'}`;}}
+}
 let selected=null;
 const ROOMCOL={research:'#6b8ad9',dev:'#3a9ad9',term:'#7a7a8a',plan:'#e8a030'};
 const fmtSec=ms=>{const s=Math.max(0,Math.floor(ms/1000));return s<60?s+'s':Math.floor(s/60)+'m'+String(s%60).padStart(2,'0');};
@@ -575,8 +566,8 @@ function log(kind,text,cls){const d=document.createElement('div');d.innerHTML=`<
 // alerts
 let alertFor=null;const waiters=new Map();
 function showAlert(town,tr,text){alertFor=tr;$('alertText').textContent=`${town.name} · ${tname(tr)}: ${text}`;$('alert').classList.add('show');
-  $('alertBtns').innerHTML=LIVE?'<button id="ack" class="on">확인 (승인은 터미널에서)</button>':'<button id="approve" class="on">승인</button><button id="deny">거절</button>';
-  if(LIVE)$('ack').onclick=()=>clearAlert(tr);else{$('approve').onclick=()=>answer(tr,true);$('deny').onclick=()=>answer(tr,false);}}
+  $('alertBtns').innerHTML='<button id="ack" class="on">확인 (승인·답변은 터미널에서)</button>';
+  $('ack').onclick=()=>clearAlert(tr);}
 function clearAlert(tr){if(alertFor===tr){$('alert').classList.remove('show');alertFor=null;}}
 function answer(tr,ok){clearAlert(tr);tr.state='think';tr.bubble=null;const w=waiters.get(tr.id);if(w){waiters.delete(tr.id);w(ok);}log(ok?'tool_end':'stop',ok?'사용자 승인':'사용자 거절',ok?'tool_end':'fail');}
 
@@ -593,7 +584,7 @@ async function detectSource(){
   else if(SRC.mode==='remote')el.innerHTML='<b style="color:var(--mint)">GitHub에서 바로 불러오는 중</b> · 역할 옆 <b>변경</b>으로 고르세요.';
   else if(SRC.server)el.innerHTML='<b style="color:var(--amber)">서버는 켜졌지만 스프라이트가 없어요.</b> 터미널에서 <code>npm run setup</code> 을 실행한 뒤 이 페이지를 새로고침하세요. 원인은 <code>npm run doctor</code> 로 볼 수 있어요.';
   else if(location.protocol==='file:')el.innerHTML='<b style="color:var(--amber)">파일을 직접 열었어요.</b> 터미널에서 <code>npm start</code> 후 <b>http://127.0.0.1:4321</b> 로 열어야 포켓몬을 고를 수 있어요.';
-  else el.innerHTML='<b style="color:var(--amber)">데모 페이지예요.</b> 포켓몬 바꾸기는 PC에서 <code>npm start</code> 후 <b>http://127.0.0.1:4321</b> 에서 할 수 있어요.';}
+  else el.innerHTML='포켓몬 바꾸기는 PC에서 <code>npm start</code> 후 <b>http://127.0.0.1:4321</b> 에서 할 수 있어요.';}
 const spriteUrl=(id,sh)=>SRC.base+(sh?'shiny/':'')+id+'.png';
 function buildPack(){const el=$('teamList');if(!el)return;el.innerHTML='';[...ROLES,'trainer'].forEach(r=>{const row=document.createElement('div');row.className='card'+(selected===r?' sel':'');
   const c=document.createElement('canvas');c.width=48;c.height=48;thumb(c,r==='trainer'?trainerImg(0,0):monImg(r,0));row.appendChild(c);
@@ -619,7 +610,7 @@ async function applyDefaults(){if(SRC.mode==='none'||store.get('pokeoffice.pack'
   for(const r of ROLES){if(custom[r])continue;try{const url=await toDataUrl(spriteUrl(DEF[r].dex,false));if(await loadDataUrl(r,url)){const e=(SRC.names||[]).find(x=>x.id===DEF[r].dex);cfg[r]={dex:DEF[r].dex,name:e?(e.ko||e.en):DEF[r].suggest};n++;}}catch{}}
   if(n){savePack();afterPack();renderSide();$('packState').textContent=`추천 포켓몬 ${n}마리로 시작했어요. 역할 옆 변경으로 바꿀 수 있어요.`;}}
 function savePack(){const urls={};Object.entries(custom).forEach(([k,v])=>urls[k]=v.url);if(!store.set('pokeoffice.pack',{cfg,urls}))$('packState').textContent='이 브라우저는 저장소를 막아서 새로고침하면 초기화돼요.';}
-function afterPack(){buildPack();renderDex();buildInject();}
+function afterPack(){buildPack();renderDex();}
 async function onFiles(files){let n=0;const list=[...files].filter(f=>/\.(png|gif|webp)$/i.test(f.name));
   for(const key of [...ROLES,'trainer']){const dex=String(cfg[key].dex||'').trim();const f=list.find(f=>{const b=f.name.replace(/\.[^.]+$/,'').toLowerCase();return b===key||(dex&&b===dex);});if(!f)continue;
     const url=await new Promise(res=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.readAsDataURL(f);});if(await loadDataUrl(key,url)){n++;if(SRC.names&&dex&&!cfg[key].name){const e=SRC.names.find(x=>String(x.id)===dex);if(e)cfg[key].name=e.ko||e.en;}}}
@@ -627,39 +618,15 @@ async function onFiles(files){let n=0;const list=[...files].filter(f=>/\.(png|gi
 $('packFiles').onchange=e=>onFiles(e.target.files);$('packDir').onchange=e=>onFiles(e.target.files);
 $('packReset').onclick=()=>{Object.keys(custom).forEach(k=>delete custom[k]);ROLES.forEach(r=>cfg[r]={dex:DEF[r].dex,name:''});cfg.trainer={dex:'',name:''};savePack();afterPack();$('packState').textContent='오리지널 몬스터로 바꿨어요.';};
 
-// ───────── test buttons (fake events to the active office, session 1)
-const INJ=[
-  {tool:'Read',detail:'README.md',label:'Read'},
-  {tool:'Bash',detail:'rg "TODO" src',label:'Bash: rg'},
-  {tool:'Edit',detail:'app.ts',label:'Edit'},
-  {tool:'Bash',detail:'npm test',label:'Bash: npm test'},
-  {tool:'Bash',detail:'npm install zod',label:'Bash: install'},
-  {tool:'WebSearch',detail:'vite pixel art',label:'WebSearch'},
-  {tool:'mcp__slack__post_message',detail:'#dev 공유',label:'MCP: Slack'},
-  {tool:'Agent',detail:'예제 조사',label:'Agent'},
-  {tool:'AskUserQuestion',detail:'',label:'질문'},
-  {kind:'notify',label:'권한 요청'},
-  {kind:'stop',label:'Stop'},
-];
-function buildInject(){$('inject').innerHTML='';INJ.forEach(it=>{const b=document.createElement('button');const c=document.createElement('canvas');c.width=48;c.height=48;
-  const act=it.tool?resolveAction(it.tool,{cmd:it.detail}):null;const r=act&&act.role;
-  thumb(c,(r&&(SPR[r]||custom[r]))?monImg(r,0):trainerImg(0,0));b.appendChild(c);
-  const s=document.createElement('span');s.textContent=it.label;b.appendChild(s);
-  b.title=act?`${act.tool} · ${act.label} → ${r==='ask'||r==='plan'?'기획실':HAB[r]?HAB[r].name:''}`:it.label;
-  b.onclick=()=>{const t=towns.get(active)||getTown('my-project');const tr=[...t.trainers.values()][0];const sid=tr?tr.id:'manual';const base={town:t.name,session:sid};
-    if(it.kind)return handleEvent({...base,kind:it.kind,detail:'테스트 이벤트'});
-    if(r==='sub'){handleEvent({...base,kind:'tool_start',tool:it.tool,detail:it.detail});setTimeout(()=>handleEvent({...base,kind:'subagent_end'}),6000/speed);return;}
-    const id='m'+Math.random();handleEvent({...base,kind:'tool_start',tool:it.tool,detail:it.detail,cmd:it.detail,id});
-    setTimeout(()=>handleEvent({...base,kind:'tool_end',tool:it.tool,id,ok:true}),(r==='ask'?4000:rand(1500,2800))/speed);};$('inject').appendChild(b);});}
-
 // ───────── demo: two offices, three sessions (same event path as live)
-let demoOn=true;
+let demoOn=false;
 async function demoSession(town,sid,script){
   const E=(o)=>demoOn&&!LIVE&&handleEvent({town,session:sid,...o});
   const tool=async(t,d,ms,ok=true)=>{const id=sid+Math.random();E({kind:'tool_start',tool:t,detail:d,cmd:d,id});await sleep(ms);E({kind:'tool_end',tool:t,id,ok});};
   const par=async(...xs)=>Promise.all(xs.map(x=>tool(...x)));
   await sleep(30);E({kind:'session_start'});await sleep(1800);
   while(true){if(!demoOn||LIVE){await sleep(800);continue;}await script({E,tool,par,sid,town});await sleep(rand(9000,15000));}}
+function startDemo(){demoOn=true;
 demoSession('my-app','sess-a1',async({E,tool,par,sid})=>{
   E({kind:'prompt',detail:'로그인 버그 고쳐줘'});await sleep(1600);
   E({kind:'tool_start',tool:'TodoWrite',todos:[{text:'원인 찾기',status:'in_progress'},{text:'login.ts 수정',status:'pending'},{text:'테스트 통과',status:'pending'}]});await sleep(1400);
@@ -679,11 +646,12 @@ demoSession('my-app','sess-a2',async({E,tool,par})=>{await sleep(5000);
 demoSession('blog','sess-b1',async({E,tool})=>{await sleep(2500);
   E({kind:'prompt',detail:'새 글 빌드하고 배포'});await sleep(1200);
   await tool('Bash','npm install',2600);await tool('Bash','npm run build',3600);await tool('WebFetch','블로그 미리보기',2600);await tool('mcp__vercel__deploy','production',3000);E({kind:'stop'});});
+}
 
 // ───────── live (SSE from local server)
 function connectLive(){if(!SRC.server)return;const es=new EventSource('stream');
   es.onopen=()=>{if(!LIVE){LIVE=true;towns.clear();active=null;renderTowns();renderSide();}
-    $('liveState').innerHTML='<b style="color:var(--mint)">로컬 서버에 연결됨</b> — 프로젝트 폴더마다 사무실, 세션마다 트레이너가 생겨요.';$('modeChip').textContent='LIVE';$('modeChip').classList.add('live');demoOn=false;$('demoBtn').textContent='데모 OFF';$('demoBtn').classList.remove('on');};
+    $('liveState').innerHTML='<b style="color:var(--mint)">로컬 서버에 연결됨</b> — 프로젝트 폴더마다 사무실, 세션마다 트레이너가 생겨요.';$('modeChip').style.display='';$('modeChip').textContent='LIVE';$('modeChip').classList.add('live');demoOn=false;};
   es.onerror=()=>{$('liveState').textContent='서버 연결이 끊겼어요. 다시 시도하는 중…';$('modeChip').textContent='OFFLINE';$('modeChip').classList.remove('live');};
   es.onmessage=e=>{let ev;try{ev=JSON.parse(e.data);}catch{return;}handleEvent(ev);};}
 
@@ -775,14 +743,11 @@ cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-
   let btr=null;t.trainers.forEach(tr=>{const d=Math.hypot(tr.x-x,tr.y-12-y);if(d<bd){bd=d;btr=tr;}});
   if(btr){$('info').innerHTML=`<b>${tname(btr)}</b> · 세션 <code></code> · ${btr.prompt?'"'+btr.prompt+'"':'대기 중'}`;$('info').querySelector('code').textContent=String(btr.id).slice(0,10);}
   else if(best)select(best);});
-$('play').onclick=()=>{paused=!paused;$('play').textContent=paused?'▶ PLAY':'❚❚ PAUSE';};
-document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x===b));});
 $('zoomBtn').onclick=()=>{const st=document.querySelector('.stage');const z=st.classList.toggle('zoom');$('zoomBtn').textContent=z?'🔍 전체 보기':'🔍 확대';$('zoomBtn').classList.toggle('on',z);if(z)requestAnimationFrame(()=>{st.scrollLeft=(st.scrollWidth-st.clientWidth)/2;});};
-$('demoBtn').onclick=()=>{demoOn=!demoOn;$('demoBtn').textContent=demoOn?'데모 ON':'데모 OFF';$('demoBtn').classList.toggle('on',demoOn);};
 
 // boot
 (async()=>{const saved=store.get('pokeoffice.pack');if(saved){Object.assign(cfg,saved.cfg||{});ROLES.forEach(r=>{if(!cfg[r])cfg[r]={dex:DEF[r].dex,name:''};});for(const [k,u] of Object.entries(saved.urls||{}))await loadDataUrl(k,u);}
-  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);drawMap();buildPack();renderSide();buildInject();requestAnimationFrame(frame);await detectSource();await applyDefaults();buildPack();connectLive();})();
+  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);drawMap();buildPack();renderSide();requestAnimationFrame(frame);await detectSource();await applyDefaults();buildPack();if(SRC.server)connectLive();else startDemo();})();
 })();
 </script>
 </body>
