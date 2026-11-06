@@ -73,7 +73,7 @@ function toEvent(h) {
             ...(Array.isArray(h.tool_input?.todos) ? { todos: h.tool_input.todos.map((t) => ({ text: cut(t.content || t.subject, 30), status: t.status })) } : {}) };
     case 'PostToolUse':
       return isTask ? null : { ...common, kind: 'tool_end', ok: !failed(h.tool_response), ...(h.tool_input?.command ? { cmd: cut(h.tool_input.command, 300) } : {}) };
-    case 'PostToolUseFailure':
+    case 'PostToolUseFailure': // 거절·중단·오류로 끝난 툴
       return isTask ? null : { ...common, kind: 'tool_end', ok: false };
     case 'SubagentStop': return { ...common, kind: 'subagent_end' };
     case 'Notification': return { ...common, kind: 'notify', detail: cut(h.message, 40), full: full(h.message) };
@@ -97,12 +97,12 @@ process.stdin.on('end', async () => {
       signal: AbortSignal.timeout(800),
     });
     // 툴을 쓰기 전과 답변이 끝났을 때, Claude가 CLI에 쓴 말을 같이 보냄 (화면에서 중복은 걸러요)
-    if (h.hook_event_name === 'PreToolUse' || h.hook_event_name === 'Stop') {
+    if (h.hook_event_name === 'PreToolUse' || h.hook_event_name === 'Stop') try {
       if (h.hook_event_name === 'Stop') await new Promise((r) => setTimeout(r, 200)); // 마지막 답변이 파일에 써질 시간
       const texts = claudeSaid(h.transcript_path);
       if (typeof h.last_assistant_message === 'string' && h.last_assistant_message.trim()) texts.push(full(h.last_assistant_message.trim(), 3000));
       if (texts.length) await post({ ts: Date.now(), session: h.session_id, cwd: h.cwd, agent: 'main', kind: 'say', texts });
-    }
+    } catch { /* Claude 말 보내기가 늦어도 아래 이벤트는 보냄 */ }
     if (ev) await post(ev);
   } catch { /* 서버가 꺼져 있으면 무시 */ }
   process.exit(0);

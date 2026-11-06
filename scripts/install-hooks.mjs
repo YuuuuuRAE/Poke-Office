@@ -13,8 +13,8 @@ const COMMAND = `node "${HOOK}"`;
 const DIR = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'));
 const FILE = join(DIR, 'settings.json');
 const REMOVE = process.argv.includes('--remove');
-const EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'SubagentStop', 'Stop', 'SessionEnd'];
-const WITH_MATCHER = new Set(['PreToolUse', 'PostToolUse']);
+const EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Notification', 'SubagentStop', 'Stop', 'SessionEnd'];
+const WITH_MATCHER = new Set(['PreToolUse', 'PostToolUse', 'PostToolUseFailure']);
 
 const say = (m) => console.log(`[poke-office] ${m}`);
 const isOurs = (h) => h && typeof h.command === 'string' && (/poke-office/i.test(h.command)||h.command.includes(HOOK)) && /hook\.mjs/.test(h.command);

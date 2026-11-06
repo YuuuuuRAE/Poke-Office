@@ -7,7 +7,7 @@
 //   GET  /api/sessions  → 최근에 쓰인 Claude Code 세션 (대화 기록 폴더에서 찾음)
 //   GET  /api/limits    → 5시간·주간 사용 한도 (상태줄이 저장한 ~/.claude/statusline-cache.json 이 있을 때만)
 //   POST /events        → hook.mjs 가 보내는 OfficeEvent
-//   GET  /stream        → 화면이 구독하는 Server-Sent Events
+//   GET  /stream        → 화면이 구독하는 Server-Sent Events (대화 기록에서 찾은 recap · 중단도 여기로)
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, createReadStream, readdirSync, statSync, openSync, readSync, closeSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -82,6 +82,53 @@ function readLimits() {
     return out.fiveHour || out.sevenDay ? out : { available: false };
   } catch { return { available: false }; }
 }
+
+// ── 대화 기록 지켜보기: 훅이 없는 순간을 메워요 (3초마다 새로 붙은 줄만 읽음)
+//   recap(자리 비운 동안의 요약) → recap,  Esc 중단 · 턴 종료 → stop (화면에 이미 있는 트레이너에게만 적용)
+const tails = new Map(); // 파일 → 읽은 위치
+function watchTranscripts() {
+  const since = Date.now() - 30 * 60e3;
+  let dirs = [];
+  try { dirs = readdirSync(PROJECTS); } catch { return; }
+  for (const d of dirs) {
+    let files = [];
+    try { files = readdirSync(join(PROJECTS, d)).filter((f) => f.endsWith('.jsonl')); } catch { continue; }
+    for (const f of files) {
+      const file = join(PROJECTS, d, f);
+      let st; try { st = statSync(file); } catch { continue; }
+      if (st.mtimeMs < since) continue;
+      const from = tails.get(file);
+      if (from === undefined || st.size < from) { tails.set(file, st.size); continue; } // 처음 본 파일은 끝에서부터
+      if (st.size === from) continue;
+      let text = '';
+      const fd = openSync(file, 'r');
+      try {
+        const len = Math.min(st.size - from, 4 * 1024 * 1024), buf = Buffer.alloc(len);
+        readSync(fd, buf, 0, len, from);
+        text = buf.toString('utf8');
+      } finally { closeSync(fd); }
+      const end = text.lastIndexOf('\n');
+      if (end < 0) continue; // 아직 줄이 다 안 써짐
+      tails.set(file, from + Buffer.byteLength(text.slice(0, end + 1)));
+      for (const line of text.slice(0, end).split('\n')) {
+        let e; try { e = JSON.parse(line); } catch { continue; }
+        if (e.isSidechain || !e.sessionId) continue;
+        const base = { ts: Date.now(), soft: true, session: e.sessionId, cwd: e.cwd, agent: 'main', at: Date.parse(e.timestamp) || Date.now() };
+        if (e.type === 'system' && e.subtype === 'away_summary' && typeof e.content === 'string') {
+          broadcast({ ...base, kind: 'recap', text: e.content.replace(/\s*\(disable recaps in \/config\)\s*$/, '').slice(0, 4000) });
+        } else if (e.type === 'system' && e.subtype === 'turn_duration') {
+          broadcast({ ...base, kind: 'stop', why: 'turn' });
+        } else if (e.type === 'user') {
+          const c = e.message?.content;
+          const t = typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) => (b.type === 'text' ? b.text : '')).join('') : '';
+          if (/^\[Request interrupted by user/.test(t.trim())) broadcast({ ...base, kind: 'stop', why: 'interrupt' });
+        }
+      }
+    }
+  }
+}
+setInterval(() => { try { watchTranscripts(); } catch {} }, 3000);
+watchTranscripts();
 
 const clients = new Set();
 const recent = []; // 새로 접속한 화면에 최근 이벤트 몇 개를 다시 보내지는 않음(상태 꼬임 방지). 로그용.
