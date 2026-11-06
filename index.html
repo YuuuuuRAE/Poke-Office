@@ -9,6 +9,7 @@
 <style>
 :root{--bg:#1b1820;--panel:#25212d;--panel2:#2e2938;--line:#463d55;--ink:#f2eadb;--quiet:#a99cba;--mint:#7cf59a;--leaf:#5fbf62;--amber:#f0b030;--red:#ff6b6b;--blue:#6cc4ff;--shadow:#0c0a10;}
 *{box-sizing:border-box}
+html{scrollbar-gutter:stable}
 html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'DotGothic16',system-ui,-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif}
 body{background:repeating-linear-gradient(0deg,transparent 0 15px,rgba(255,255,255,.02) 15px 16px),repeating-linear-gradient(90deg,transparent 0 15px,rgba(255,255,255,.02) 15px 16px),var(--bg)}
 .wrap{max-width:1280px;margin:0 auto;padding:16px 14px 40px}
@@ -16,6 +17,7 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
 .kicker{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--quiet);letter-spacing:1px}
 h1{margin:6px 0 0;font-size:30px;line-height:1.15;font-weight:900;color:var(--mint);text-shadow:2px 2px 0 #0b3a1c,4px 4px 0 rgba(0,0,0,.4)}
 h1 span{color:var(--ink)}
+h1 .pball{width:.95em;height:.95em;margin-right:.3em;vertical-align:-.1em;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.4))}
 .chip{font-family:'Press Start 2P',monospace;font-size:9px;padding:7px 10px;border:3px solid var(--line);border-radius:10px;background:var(--panel);color:var(--quiet)}
 .chip.live{color:var(--mint);border-color:var(--mint)}
 .grid{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:16px;align-items:start}
@@ -26,7 +28,7 @@ h1 span{color:var(--ink)}
 .dot{width:9px;height:9px;border-radius:50%;background:#bbb;display:inline-block}
 .dot.work{background:#4fbf5a}.dot.wait{background:#f0b020;animation:pulse 1s infinite}.dot.idle{background:#b8a890}
 @keyframes pulse{50%{opacity:.3}}
-#dlgBox{display:flex;align-items:center;gap:10px;min-width:0;margin-top:10px;min-height:52px;padding:10px 14px;background:#fffaf0;color:#2a1e18;border:4px solid #000;border-radius:10px;box-shadow:0 0 0 3px var(--line);font-size:16px;line-height:1.4}
+#dlgBox{display:flex;align-items:center;gap:10px;min-width:0;margin-top:10px;min-height:44px;padding:8px 12px;background:#fffaf0;color:#2a1e18;border:4px solid #000;border-radius:10px;box-shadow:0 0 0 3px var(--line);font-size:14px;line-height:1.4}
 #dlgDot{flex:none;width:14px;height:14px;border-radius:4px;background:transparent}
 #dlgText{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #dlgBox .more{color:#6b5a48;border-color:#c8b89a}
@@ -35,6 +37,7 @@ canvas#office{display:block;width:100%;height:auto;image-rendering:pixelated;tou
 button{font-family:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:3px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;box-shadow:0 3px 0 var(--shadow)}
 button:hover{border-color:#c4a874}
 button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
+.tabs button:active,.more:active{transform:none}
 button.on{background:#1f3a2a;border-color:var(--leaf);color:var(--mint)}
 button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .panel{background:var(--panel);border:3px solid var(--line);border-radius:14px;box-shadow:0 5px 0 var(--shadow);overflow:hidden}
@@ -102,6 +105,9 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .dexgrid button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px;font-size:12px;box-shadow:0 2px 0 var(--shadow)}
 .dexgrid button img{width:64px;height:64px;image-rendering:pixelated}
 .dexgrid .no{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--quiet)}
+.tip{position:fixed;z-index:40;pointer-events:none;max-width:260px;padding:6px 10px;background:#fffaf0;color:#2a1e18;border:3px solid #2a1e18;border-radius:6px;box-shadow:0 0 0 2px #fffaf0,0 0 0 5px #4a4a5e,0 6px 0 5px rgba(0,0,0,.35);font-size:12.5px;line-height:1.5}
+.tip[hidden]{display:none}.tip b{font-size:13.5px}.tip .st{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;font-size:11px;color:#fff}
+.tip small{display:block;margin-top:2px;color:#8a7a68;font-size:11px}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -111,9 +117,8 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
   <header>
     <div>
       <div class="kicker">CLAUDE CODE X Pokemon</div>
-      <h1>Poke Office</h1>
+      <h1><svg class="pball" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#1b1820" d="M4 0h4v1h2v1h1v2h1v4h-1v2h-1v1h-2v1H4v-1H2v-1H1V8H0V4h1V2h1V1h2z"/><path fill="#e8473b" d="M4 1h4v1h2v2h1v1H1V4h1V2h2z"/><path fill="#ff8a7a" d="M3 2h2v1H3z"/><path fill="#f4f0e8" d="M1 7h10v1h-1v2H8v1H4v-1H2V8H1z"/><path fill="#1b1820" d="M1 5h10v2H1z"/><path fill="#f4f0e8" d="M5 5h2v2H5z"/></svg>Poke Office</h1>
     </div>
-    <div class="chip" id="modeChip" style="display:none">LIVE</div>
   </header>
 
   <div class="grid">
@@ -174,6 +179,7 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       </section>
     </div>
   </div>
+  <div class="tip" id="tip" hidden></div>
   <div class="modal" id="modal" hidden><div class="mbox" role="dialog" aria-modal="true"><div class="mhead"><b id="mTitle"></b><button id="mClose" title="닫기">✕</button></div><div id="mExtra"></div><div class="mbody" id="mBody"></div></div></div>
   <footer>기본 몬스터·트레이너·사무실 그림은 이 프로젝트용 오리지널 픽셀 아트입니다. 포켓몬 스프라이트는 내려받은 앱에서 사용자가 직접 받아 이 PC에서만 씁니다.</footer>
 </div>
@@ -439,8 +445,16 @@ function drawMap(){buildGrid();
 }
 // 방 이름표: 늘리지 않고 화면 해상도로 직접 그려서 글자가 선명해요
 function drawLabels(){ctx.font=`${7*S}px "DotGothic16", sans-serif`;ctx.textBaseline='alphabetic';
-  Object.values(ROOMS).forEach(r=>{if(!r.ko)return;const x=px(r.x0*T+3),y=px((r.y0-r.face)*T+2),w=ctx.measureText(r.ko).width+8*S;
-    ctx.fillStyle='rgba(30,22,16,.88)';ctx.fillRect(x,y,w,10*S);ctx.fillStyle='#f4ead8';ctx.fillText(r.ko,x+4*S,y+8*S);});}
+  Object.entries(ROOMS).forEach(([k,r])=>{if(!r.ko)return;const x=px(r.x0*T+3),y=px((r.y0-r.face)*T+2),w=ctx.measureText(r.ko).width+8*S,on=k===hoverRoom;
+    ctx.fillStyle=on?'#f8d030':'rgba(30,22,16,.88)';ctx.fillRect(x,y,w,10*S);ctx.fillStyle=on?'#2a1e18':'#f4ead8';ctx.fillText(r.ko,x+4*S,y+8*S);});}
+// 마우스를 올린 방: 살짝 밝게 + 모서리 선택 커서가 깜빡깜빡 (포켓몬 메뉴 커서 느낌)
+let hoverRoom=null;
+function drawHover(){if(!hoverRoom||grab)return;const r=ROOMS[hoverRoom];const x0=r.x0*T,y0=(r.y0-r.face)*T,x1=(r.x1+1)*T,y1=(r.y1+1)*T;
+  ctx.fillStyle='rgba(255,248,220,.10)';ctx.fillRect(px(x0),px(y0),(x1-x0)*S,(y1-y0)*S);
+  const k=Math.floor(now.t/260)%2?1:3,L=9;
+  for(const [cx,cy,sx,sy] of [[x0,y0,1,1],[x1,y0,-1,1],[x0,y1,1,-1],[x1,y1,-1,-1]]){const ax=cx+sx*k,ay=cy+sy*k;
+    for(const [col,o] of [['#2a1e18',1],['#fff',0]]){ctx.fillStyle=col;const ox=ax+sx*o,oy=ay+sy*o;
+      ctx.fillRect(px(Math.min(ox,ox+sx*L)),px(Math.min(oy,oy+sy*2)),L*S,2*S);ctx.fillRect(px(Math.min(ox,ox+sx*2)),px(Math.min(oy,oy+sy*L)),2*S,L*S);}}}
 function animMap(t){
   for(let i=0;i<5;i++)for(let j=0;j<5;j++){const on=Math.sin(t/200+i*1.3+j*2.1)>0;ctx.fillStyle=on?(j%2?'#5ad87a':'#e85a5a'):'#3a3a44';ctx.fillRect(px(19*T+2+i*15.6+6),px(12.2*T+6+j*6),S,S);}
   for(let i=0;i<3;i++){ctx.fillStyle=['#5ad87a','#7ac8f0','#e8d870'][i];ctx.fillRect(px(13.6*T+5+((t/40+i*30)%40)),px(.3*T+26+i*3),3*S,S);}
@@ -565,8 +579,8 @@ const fmtSec=ms=>{const s=Math.max(0,Math.floor(ms/1000));return s<60?s+'s':Math
 function openModal(title,content,{cls='',extra=null}={}){const m=$('modal');m.className='modal '+cls;$('mTitle').textContent=title;
   const x=$('mExtra');x.innerHTML='';if(extra)x.appendChild(extra);const b=$('mBody');b.innerHTML='';b.scrollTop=0;
   if(typeof content==='string'){const pre=document.createElement('pre');pre.className='mtext';pre.textContent=content;b.appendChild(pre);}else b.appendChild(content);
-  m.hidden=false;document.body.style.overflow='hidden';}
-function closeModal(){$('modal').hidden=true;document.body.style.overflow='';pickRole=null;}
+  m.hidden=false;document.documentElement.style.overflow='hidden';}
+function closeModal(){$('modal').hidden=true;document.documentElement.style.overflow='';pickRole=null;}
 $('mClose').onclick=closeModal;$('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modal').hidden)closeModal();});
 // 잘린 글은 오른쪽 작은 ▾ 버튼 → 가운데 팝업으로 전체 보기
@@ -578,7 +592,7 @@ function fitMore(d,title,body,raw){const btn=d.querySelector('.more');if(!btn)re
 function renderSide(){renderWork();renderSessions();}
 function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)return;
   const jobs=t?t.jobs:[];const subs=t?t.mons.filter(m=>m.role==='sub'&&m.state==='subwork'):[];
-  $('workSum').textContent=t?`${t.trainers.size}세션/${jobs.length+subs.length}작업`:'';
+  {const n=jobs.length+subs.length;$('workSum').textContent=n?`${n}개의 작업 중`:'';}
   if(!jobs.length&&!subs.length){el.innerHTML=`<div class="empty">지금 작업 중인 포켓몬이 없어요.<br><span style="font-size:12px">(Claude Code가 동작할 경우<br>자동으로 포켓몬이 일을 시작해요.)</span></div>`;return;}
   el.innerHTML='';
   const row=(img,a,b,room,since,tr,state,full)=>{const d=document.createElement('div');d.className='wrow';
@@ -596,7 +610,7 @@ function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!e
     const st=tr.lounge&&tr.state==='idle'?'휴게실 · 내 차례':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'⚠ 승인·답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
     c.innerHTML=`<div class="sw" style="width:40px;height:40px;background:${HATS[tr.color][0]}">S${tr.no}</div><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${jobs?jobs+'건':''}</div>`;
-    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
+    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ID: ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
   if(t.todos.length){const d=document.createElement('div');d.style.cssText='margin-top:8px;font-size:13px;line-height:1.7';d.innerHTML='<div class="muted" style="font-size:12px">화이트보드 할 일</div>';
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
 setInterval(()=>{if(!paused)renderWork();},1000);
@@ -631,11 +645,8 @@ async function detectSource(){
     if(r.ok){const by=new Map();(await r.text()).split('\n').slice(1).forEach(l=>{const [id,lang,name]=l.split(',');if(!id||!name)return;const e=by.get(+id)||{id:+id,ko:'',en:''};if(lang==='3')e.ko=name;if(lang==='9')e.en=name;by.set(+id,e);});
       SRC.names=[...by.values()].sort((a,b)=>a.id-b.id);SRC.mode='remote';SRC.base='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';}}catch{}}
   const el=$('srcState');
-  if(SRC.mode==='server')el.innerHTML=`<b style="color:var(--mint)">스프라이트 준비됨</b> · 이 PC에 받은 포켓몬 ${SRC.names?SRC.names.length:'?'}종. 역할 옆 <b>변경</b>으로 고르세요.`;
-  else if(SRC.mode==='remote')el.innerHTML='<b style="color:var(--mint)">GitHub에서 바로 불러오는 중</b> · 역할 옆 <b>변경</b>으로 고르세요.';
-  else if(SRC.server)el.innerHTML='<b style="color:var(--amber)">서버는 켜졌지만 스프라이트가 없어요.</b> 터미널에서 <code>npm run setup</code> 을 실행한 뒤 이 페이지를 새로고침하세요. 원인은 <code>npm run doctor</code> 로 볼 수 있어요.';
-  else if(location.protocol==='file:')el.innerHTML='<b style="color:var(--amber)">파일을 직접 열었어요.</b> 터미널에서 <code>npm start</code> 후 <b>http://127.0.0.1:4321</b> 로 열어야 포켓몬을 고를 수 있어요.';
-  else el.innerHTML='포켓몬 바꾸기는 PC에서 <code>npm start</code> 후 <b>http://127.0.0.1:4321</b> 에서 할 수 있어요.';}
+  el.innerHTML=SRC.mode!=='none'?'<b style="color:var(--mint)">스프라이트 준비됨</b>':'<b style="color:var(--red)">스프라이트를 불러오지 못했어요</b>';
+  el.style.display=SRC.mode!=='none'||SRC.server?'':'none';} // 서버 없이 연 데모 화면에서는 숨김
 const spriteUrl=(id,sh)=>SRC.base+(sh?'shiny/':'')+id+'.png';
 function buildPack(){const el=$('teamList');if(!el)return;el.innerHTML='';[...ROLES,'trainer'].forEach(r=>{const row=document.createElement('div');row.className='card'+(selected===r?' sel':'');
   const c=document.createElement('canvas');c.width=48;c.height=48;thumb(c,r==='trainer'?trainerImg(0,0):monImg(r,0));row.appendChild(c);
@@ -708,8 +719,8 @@ demoSession('blog','sess-b1',async({E,tool})=>{await sleep(2500);
 // ───────── live (SSE from local server)
 function connectLive(){if(!SRC.server)return;const es=new EventSource('stream');
   es.onopen=()=>{if(!LIVE){LIVE=true;towns.clear();active=null;renderTowns();renderSide();}
-    $('liveState').innerHTML='<b style="color:var(--mint)">● 로컬 서버에 연결됨</b>';$('modeChip').style.display='';$('modeChip').textContent='LIVE';$('modeChip').classList.add('live');demoOn=false;};
-  es.onerror=()=>{$('liveState').textContent='서버 연결이 끊겼어요. 다시 시도하는 중…';$('modeChip').textContent='OFFLINE';$('modeChip').classList.remove('live');};
+    $('liveState').innerHTML='<b style="color:var(--mint)">● 로컬 서버에 연결됨</b>';demoOn=false;};
+  es.onerror=()=>{$('liveState').textContent='서버 연결이 끊겼어요. 다시 시도하는 중…';};
   es.onmessage=e=>{let ev;try{ev=JSON.parse(e.data);}catch{return;}handleEvent(ev);};}
 
 // ───────── render
@@ -757,9 +768,10 @@ function moveFx(r,o,t){const x=o.x,y=o.y;const ph=t/120;
   case'web':ctx.fillStyle='#fff4d6';ctx.fillRect(px(x-14-((t/8)%30)),px(y-22+Math.sin(ph)*2),5*S,3*S);break;
   case'mcp':ctx.strokeStyle='#ffcf3a';ctx.lineWidth=S;ctx.beginPath();ctx.moveTo(px(x),px(y-24));ctx.lineTo(px(x+4),px(y-28));ctx.lineTo(px(x+1),px(y-29));ctx.lineTo(px(x+5),px(y-34));ctx.stroke();break;}}
 // dialog strip
-const dlg={text:'',shown:0,color:null};function dlgSet(text,tr){dlg.text=text||'';dlg.shown=0;dlgShownPrev=-1;dlg.color=tr?HATS[tr.color][0]:null;}
-let dlgShownPrev=-1;function dialog(dt){dlg.shown=Math.min(dlg.text.length,dlg.shown+dt/22);if(dlg.shown>=90)dlg.shown=dlg.text.length;const n=Math.floor(dlg.shown);if(n!==dlgShownPrev){dlgShownPrev=n;const el=$('dlgText');el.textContent=dlg.text.slice(0,n);$('dlgDot').style.background=dlg.color||'transparent';
-  if(n>=dlg.text.length)$('dlgMore').hidden=!(el.scrollWidth>el.clientWidth+1);else $('dlgMore').hidden=true;}}
+const dlg={text:'',shown:0,color:null};function dlgSet(text,tr){dlg.text=text||'';dlg.shown=0;dlgShownPrev=-1;dlg.color=tr?HATS[tr.color][0]:null;
+  // 전체 글이 한 줄에 다 들어가는지 미리 재서, 넘치면 ▾ 버튼을 처음부터 보여줘요
+  const el=$('dlgText');el.textContent=dlg.text;$('dlgMore').hidden=false;dlg.over=el.scrollWidth>el.clientWidth+1;el.textContent='';$('dlgMore').hidden=!dlg.over;}
+let dlgShownPrev=-1;function dialog(dt){dlg.shown=Math.min(dlg.text.length,dlg.shown+dt/22);if(dlg.shown>=90)dlg.shown=dlg.text.length;const n=Math.floor(dlg.shown);if(n!==dlgShownPrev){dlgShownPrev=n;const el=$('dlgText');el.textContent=dlg.text.slice(0,n);$('dlgDot').style.background=dlg.color||'transparent';}}
 $('dlgMore').onclick=()=>openModal('대화',dlg.text);
 let last=performance.now();
 function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const raw=Math.max(0,Math.min(50,ts-last));last=ts;const dt=paused?0:raw*speed;now.t+=dt;
@@ -770,7 +782,7 @@ function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const 
   const town=towns.get(active);
   ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);
   if(town){
-    drawBoards(town);drawLabels();
+    drawBoards(town);drawHover();drawLabels();
     const ents=[];
     town.mons.forEach(mo=>ents.push({y:mo.y,draw:()=>{const busy=mo.state==='work'||mo.state==='notice';const moving=mo.path.length>0;
       const f=mo.grabbed?Math.floor(now.t/70)%2:busy?Math.floor(now.t/140)%2:moving?Math.floor(now.t/160)%2:Math.floor(now.t/700)%2;const cu=!!custom[mo.role];const sc=mo.helper&&mo.role!=='sub'?.82:1;
@@ -841,7 +853,20 @@ function grabMove(p){const o=grab.o;o.x=Math.max(T,Math.min(BW-T,p.x));o.y=Math.
 let downAt=null;
 cv.addEventListener('pointerdown',e=>{const p=toGame(e);const o=hitEntity(p);if(!o){downAt={p,x:e.clientX,y:e.clientY};return;}e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch{}
   grab={o,p,on:false,home:{x:o.x,y:o.y},t:setTimeout(grabStart,160)};});
-cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){cv.style.cursor=hitEntity(p)?'grab':roomAt(p)?'pointer':'';return;}
+function showTip(e,html){const t=$('tip');if(!html){t.hidden=true;return;}t.innerHTML=html;t.hidden=false;
+  const w=t.offsetWidth,h=t.offsetHeight;let x=e.clientX+16,y=e.clientY+18;if(x+w>innerWidth-8)x=e.clientX-w-12;if(y+h>innerHeight-8)y=e.clientY-h-12;t.style.left=x+'px';t.style.top=y+'px';}
+const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function tipFor(p){const t=towns.get(active);const o=hitEntity(p);
+  if(o&&o.role){const j=o.job;const st={work:'일하는 중',go:'가는 중',return:'복귀 중',cheer:'완료!',sad:'실패…',subwork:'조사 중',wander:'산책 중',rest:'쉬는 중',nap:'낮잠 중'}[o.state]||'';
+    return `<b>${esc(nameOf(o.role))}</b>${st?`<span class="st" style="background:#5a7ad0">${st}</span>`:''}${j?`<br>${esc(j.tool||'')} ${esc(j.label||'서브에이전트')} — ${esc(String(j.detail||'').slice(0,40))}`:''}<small>꾹 눌러서 잡기</small>`;}
+  if(o)return `<b>${esc(tname(o))}</b><span class="st" style="background:${HATS[o.color][0]}">${o.lounge&&o.state==='idle'?'내 차례':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'승인·답변 필요',sleep:'쉬는 중'}[o.state]||'')}</span>${o.prompt?`<br>"${esc(o.prompt.slice(0,40))}${o.prompt.length>40?'…':''}"`:''}<small>꾹 눌러서 잡기</small>`;
+  const k=roomAt(p);if(!k)return '';const r=ROOMS[k];
+  const jobs=t?t.jobs.filter(j=>HAB[j.role]&&HAB[j.role].room===k).length:0;const trs=t?[...t.trainers.values()].filter(tr=>inRoom(k,tr)).length:0;
+  let st=jobs?`작업 ${jobs}건 진행 중`:'조용해요';if(trs)st+=` · 트레이너 ${trs}명`;
+  if(k==='test'&&t&&t.lastTest)st+=` · 마지막 ${t.lastTest.label} ${t.lastTest.ok?'통과':'실패'}`;
+  return `<b>${r.ko}</b><span class="st" style="background:${r.tag}">${r.stage}</span><br>${esc(ROOM_LABEL_TOOLS[k]||'')}<br>${st}<small>클릭하면 자세히 보기</small>`;}
+cv.addEventListener('pointerleave',()=>{hoverRoom=null;showTip(null,'');});
+cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){const o=hitEntity(p);hoverRoom=o?null:(roomAt(p)||null);cv.style.cursor=o?'grab':hoverRoom?'pointer':'';showTip(e,tipFor(p));return;}showTip(null,'');
   grab.p=p;if(!grab.on&&Math.hypot(p.x-grab.home.x,p.y-grab.home.y+12)>4)grabStart();if(grab.on)grabMove(p);});
 function grabEnd(){if(!grab)return;clearTimeout(grab.t);const {o,home,on,p}=grab;grab=null;cv.style.cursor='';if(!on){openRoomAt(p);return;}o.grabbed=false;
   if(!walkable(Math.floor(o.x/T),Math.floor((o.y-1)/T))){o.x=home.x;o.y=home.y;}
