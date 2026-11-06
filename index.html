@@ -427,9 +427,11 @@ function drawMap(){buildGrid();
   for(let ty=0;ty<MH;ty++)for(let tx=0;tx<MW;tx++){const g=GRID[ty][tx],x=tx*T,y=ty*T;
     if(g.startsWith('floor:'))FLOOR[g.slice(6)](x,y,tx,ty);else if(g.startsWith('F:')){const room=g.slice(2);const r=ROOMS[room];paintFace(x,y,room,ty===r.y0-1?1:0);}else paintWall(x,y,tx,ty);}
   drawFurniture();
-  Object.values(ROOMS).forEach(r=>{if(!r.ko)return;const x=r.x0*T+3,y=(r.y0-r.face)*T+2;m.font='7px "DotGothic16", sans-serif';const w=m.measureText(r.ko).width+8;
-    R(x,y,w,10,'rgba(30,22,16,.88)');R(x,y+9,w,1,r.tag);m.fillStyle='#f4ead8';m.fillText(r.ko,x+4,y+8);});
 }
+// 방 이름표: 늘리지 않고 화면 해상도로 직접 그려서 글자가 선명해요
+function drawLabels(){ctx.font=`${7*S}px "DotGothic16", sans-serif`;ctx.textBaseline='alphabetic';
+  Object.values(ROOMS).forEach(r=>{if(!r.ko)return;const x=px(r.x0*T+3),y=px((r.y0-r.face)*T+2),w=ctx.measureText(r.ko).width+8*S;
+    ctx.fillStyle='rgba(30,22,16,.88)';ctx.fillRect(x,y,w,10*S);ctx.fillStyle='#f4ead8';ctx.fillText(r.ko,x+4*S,y+8*S);});}
 function animMap(t){
   for(let i=0;i<5;i++)for(let j=0;j<5;j++){const on=Math.sin(t/200+i*1.3+j*2.1)>0;ctx.fillStyle=on?(j%2?'#5ad87a':'#e85a5a'):'#3a3a44';ctx.fillRect(px(19*T+2+i*15.6+6),px(12.2*T+6+j*6),S,S);}
   for(let i=0;i<3;i++){ctx.fillStyle=['#5ad87a','#7ac8f0','#e8d870'][i];ctx.fillRect(px(13.6*T+5+((t/40+i*30)%40)),px(.3*T+26+i*3),3*S,S);}
@@ -726,7 +728,7 @@ function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const 
     town.trainers.forEach(tr=>{if(tr.path.length){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
       if((tr.state==='idle'||tr.state==='think')&&now.t-tr.last>IDLE_MS()&&!town.jobs.some(j=>j.tr===tr)){tr.state='sleep';tr.bubble=null;renderTowns();if(town.name===active)renderSide();}});});
   const town=towns.get(active);
-  ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);
+  ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);drawLabels();
   if(town){
     drawBoards(town);
     const ents=[];
@@ -740,11 +742,12 @@ function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const 
       if(mo.state==='rest'&&!moving){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#e8a0c0';ctx.fillText('♪',px(mo.x+8),px(mo.y-h-((now.t/300)%6)));}
       if(mo.state==='cheer'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#ffcf3a';ctx.fillText('✦',px(mo.x-10),px(mo.y-h));}
       if(mo.state==='sad'){ctx.fillStyle='#6cc4ff';ctx.fillRect(px(mo.x+8),px(mo.y-h+2+((now.t/80)%4)),2*S,3*S);}
-      if(mo.carry){const it=ITEM[mo.role==='sub'?'read':mo.role];ctx.drawImage(it,px(mo.x-4),px(mo.y-h-10),8*S,8*S);}
       if(mo.helper&&mo.role!=='sub'){ctx.font=`${4*S}px 'Press Start 2P'`;ctx.fillStyle='#fff';ctx.fillText('+',px(mo.x+6),px(mo.y-h+2));}
       if(selected===mo.role&&!mo.helper){ctx.strokeStyle='#3f9a5a';ctx.lineWidth=S;ctx.strokeRect(px(mo.x-14),px(mo.y-h-2),28*S,(h+4)*S);}
       if(mo.state==='work'&&mo.job)bubble(mo.x,mo.y,`${mo.job.tool} · ${mo.job.detail}`,'#fff',h+6);
-      if(mo.state==='subwork')bubble(mo.x,mo.y,mo.job.detail,'#fff7d6',h+6);}}));
+      if(mo.state==='subwork')bubble(mo.x,mo.y,mo.job.detail,'#fff7d6',h+6);
+      const st={cheer:['완료!','#e2f7e4'],sad:['실패…','#ffe1e1'],return:['복귀 중…','#fff'],subdone:['복귀 중…','#fff']}[mo.state];
+      if(st)bubble(mo.x,mo.y,st[0],st[1],h);}}));
     town.trainers.forEach(tr=>ents.push({y:tr.y,draw:()=>{const moving=tr.path.length>0;const f=moving?Math.floor(now.t/130)%2:tr.state==='wait'?Math.floor(now.t/90)%2:Math.floor(now.t/800)%2;
       shadow(tr.x,tr.y);const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-(moving||tr.state==='wait'?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer});
       ctx.fillStyle=HATS[tr.color][0];ctx.font=`${4*S}px 'Press Start 2P'`;ctx.fillText('S'+tr.no,px(tr.x-5),px(tr.y+9));
