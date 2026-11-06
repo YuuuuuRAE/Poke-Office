@@ -57,10 +57,22 @@ macOS·Linux의 Claude Code는 검색을 `Grep`/`Glob` 대신 `Bash`(`rg`, `find
 ```bash
 git clone https://github.com/YuuuuuRAE/poke-office.git
 cd poke-office
-npm install    # 포켓몬 스프라이트를 자동으로 받아요 (약 10MB, 몇 초)
-npm start      # http://127.0.0.1:4321
-npm run hooks  # (다른 터미널에서) Claude Code에 연결
+npm run install:all   # 스프라이트 받기 + Claude Code 연결 + 바탕화면 아이콘
 ```
+
+Windows라면 클론한 폴더의 **`install.cmd`** 를 더블클릭해도 돼요. 설치가 끝나면 서버까지 바로 켜져요.
+
+그다음부터는 바탕화면의 **Poke Office** 아이콘만 누르면 돼요. 누를 때마다 GitHub에 새 버전이 있으면 먼저 받아온 뒤 서버를 켜고 브라우저를 열어요. (macOS는 `Poke Office.command` 파일이 만들어져요.)
+
+<details><summary>하나씩 직접 하기</summary>
+
+```bash
+npm install          # 포켓몬 스프라이트를 자동으로 받아요 (약 10MB, 몇 초)
+npm run hooks        # Claude Code에 연결
+npm run shortcut     # 바탕화면 아이콘 (지우기: npm run shortcut:remove)
+npm start            # http://127.0.0.1:4321
+```
+</details>
 
 브라우저에서 **http://127.0.0.1:4321** 을 열어 두면, Claude Code를 쓸 때 사무실이 움직여요.
 스프라이트 받기가 실패했다면 `npm run setup` 으로 다시 받을 수 있어요.
@@ -159,6 +171,9 @@ hook.mjs                    Claude Code 훅 입력 → OfficeEvent 로 변환해
 scripts/setup-sprites.mjs   PokeAPI 스프라이트·이름 데이터 sparse checkout
 scripts/install-hooks.mjs   ~/.claude/settings.json 에 훅 추가/제거 (npm run hooks)
 scripts/doctor.mjs          설치·연결 진단 (npm run doctor)
+scripts/install-shortcut.mjs 바탕화면 실행 아이콘 만들기/지우기 (npm run shortcut)
+scripts/start.cmd           아이콘이 실행하는 파일: 업데이트 확인 → 서버 시작 → 브라우저 열기
+install.cmd                 Windows 한 번에 설치 (npm run install:all 후 실행)
 docs/                       README 이미지
 vendor/                     (자동 생성, git 제외) 받은 스프라이트와 names.json
 ```

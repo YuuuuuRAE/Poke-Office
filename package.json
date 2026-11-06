@@ -18,13 +18,17 @@
     "start": "node server.mjs",
     "hooks": "node scripts/install-hooks.mjs",
     "hooks:remove": "node scripts/install-hooks.mjs --remove",
-    "doctor": "node scripts/doctor.mjs"
+    "doctor": "node scripts/doctor.mjs",
+    "shortcut": "node scripts/install-shortcut.mjs",
+    "shortcut:remove": "node scripts/install-shortcut.mjs --remove",
+    "install:all": "npm install && npm run hooks && npm run shortcut"
   },
   "engines": {
     "node": ">=18"
   },
   "files": [
     "index.html",
+    "install.cmd",
     "server.mjs",
     "hook.mjs",
     "scripts/",
