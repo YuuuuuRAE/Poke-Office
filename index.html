@@ -43,9 +43,18 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .panel h2{margin:0;padding:10px 12px;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--mint);border-bottom:3px dashed var(--line);display:flex;justify-content:space-between;align-items:center}
 .panel .body{padding:10px 12px}
 .side{display:flex;flex-direction:column;gap:16px}
-.wrow{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;background:var(--panel2);margin-bottom:6px;border-left:4px solid transparent}
+.wrow{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;background:var(--panel2);margin-bottom:6px}
 .wrow canvas{width:40px;height:40px;image-rendering:pixelated;background:#3a3348;border-radius:8px}
-.wrow .a{font-size:14px}.wrow .b{font-size:12px;color:var(--quiet);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow .txt{min-width:0}.wrow .a{font-size:14px}.wrow .b{font-size:12px;color:var(--quiet);margin-top:2px}
+.wrow .a,.wrow .b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wrow.open{align-items:start}.wrow.open .a,.wrow.open .b{white-space:normal;overflow:visible;overflow-wrap:anywhere}
+.wrow .more{width:20px;height:20px;padding:0;border-width:2px;border-radius:6px;box-shadow:none;font-size:10px;line-height:1;color:var(--quiet);background:transparent}
+.wrow .more:hover{color:var(--ink)}.wrow .more[hidden]{display:none}
+.cmap{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
+.cmap div{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:6px;font-size:12.5px}
+.cmap span{padding:6px 8px;border-radius:8px;background:var(--panel2);text-align:center}
+.cmap i{font-style:normal;text-align:center;color:var(--mint)}
+.sect{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--mint);margin:0 0 8px}
 .wrow .tm{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--amber);text-align:right;line-height:1.8}
 .room{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;margin-right:4px;color:#fff}
 .empty{text-align:center;padding:14px 6px;color:var(--quiet);font-size:13px;line-height:1.6}
@@ -138,9 +147,18 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
         </div>
         <div class="tab log" id="tab-log"></div>
         <div class="tab" id="tab-set">
-          <div class="muted" style="margin-bottom:6px">연결 상태</div>
-          <p style="margin:0 0 10px;font-size:13.5px" id="liveState">로컬 서버에 연결되지 않았어요.</p>
-<pre>npm install     # 처음 한 번 (스프라이트 자동 다운로드)
+          <div class="sect">연결 상태</div>
+          <p style="margin:0 0 14px;font-size:13.5px" id="liveState">로컬 서버에 연결되지 않았어요.</p>
+          <div class="sect">연결 구조</div>
+          <div class="cmap">
+            <div><span>프로젝트 폴더</span><i>→</i><span>사무실 (위쪽 탭)</span></div>
+            <div><span>Claude Code 창</span><i>→</i><span>트레이너</span></div>
+            <div><span>도구 실행</span><i>→</i><span>담당 포켓몬</span></div>
+            <div><span>서브에이전트</span><i>→</i><span>조사 포켓몬</span></div>
+            <div><span>승인 요청</span><i>→</i><span>상단 알림</span></div>
+          </div>
+          <div class="sect">기본 Command</div>
+<pre style="margin:0">npm install     # 처음 한 번 (스프라이트 자동 다운로드)
 npm run hooks   # 처음 한 번 (Claude Code 연결)
 npm start       # 매번 → http://127.0.0.1:4321
 npm run doctor  # 안 될 때 진단</pre>
@@ -529,28 +547,35 @@ function renderTowns(){const el=$('towns');el.innerHTML='';towns.forEach((t,name
 let selected=null;
 const ROOMCOL={research:'#6b8ad9',dev:'#3a9ad9',term:'#7a7a8a',plan:'#e8a030'};
 const fmtSec=ms=>{const s=Math.max(0,Math.floor(ms/1000));return s<60?s+'s':Math.floor(s/60)+'m'+String(s%60).padStart(2,'0');};
+// 잘린 글은 작은 ▾ 버튼으로 펼쳐 보기 (1초마다 다시 그려도 펼침 상태 유지)
+const expanded=new WeakSet();
+const moreBtn=()=>{const b=document.createElement('button');b.className='more';b.hidden=true;b.title='더보기';b.textContent='▾';return b;};
+function fitMore(d,key){const btn=d.querySelector('.more');if(!btn||!key)return;
+  const over=[...d.querySelectorAll('.txt > div')].some(x=>x.scrollWidth>x.clientWidth+1);
+  const set=()=>{const o=expanded.has(key);d.classList.toggle('open',o);btn.hidden=!(over||o);btn.textContent=o?'▴':'▾';btn.title=o?'접기':'더보기';};
+  btn.onclick=e=>{e.stopPropagation();expanded.has(key)?expanded.delete(key):expanded.add(key);set();};set();}
 function renderSide(){renderWork();renderSessions();}
 function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)return;
   const jobs=t?t.jobs:[];const subs=t?t.mons.filter(m=>m.role==='sub'&&m.state==='subwork'):[];
   $('workSum').textContent=t?`${t.trainers.size}세션 · ${jobs.length+subs.length}건`:'';
   if(!jobs.length&&!subs.length){el.innerHTML=`<div class="empty">지금 일하는 포켓몬이 없어요<br><span style="font-size:12px">Claude가 파일을 읽거나 고치거나 명령을 실행하면<br>담당 포켓몬이 나타나 여기에 표시돼요.</span></div>`;return;}
   el.innerHTML='';
-  const row=(img,a,b,room,since,tr,state)=>{const d=document.createElement('div');d.className='wrow';d.style.borderLeftColor=tr?HATS[tr.color][0]:'transparent';
+  const row=(img,a,b,room,since,tr,state,key)=>{const d=document.createElement('div');d.className='wrow';
     const c=document.createElement('canvas');c.width=48;c.height=48;thumb(c,img);d.appendChild(c);
-    const m=document.createElement('div');m.innerHTML=`<div class="a"></div><div class="b"></div>`;m.querySelector('.a').textContent=a;
+    const m=document.createElement('div');m.className='txt';m.innerHTML=`<div class="a"></div><div class="b"></div>`;m.querySelector('.a').textContent=a;
     const bb=m.querySelector('.b');if(room)bb.innerHTML=`<span class="room" style="background:${ROOMCOL[room]||'#666'}">${ROOMS[room].ko}</span>`;bb.append(b);d.appendChild(m);
-    const tm=document.createElement('div');tm.className='tm';tm.innerHTML=`${fmtSec(now.t-since)}<br><span style="color:var(--quiet)">${tr?'S'+tr.no:''}</span>`;if(state)tm.title=state;d.appendChild(tm);el.appendChild(d);};
+    const tm=document.createElement('div');tm.className='tm';tm.innerHTML=`${fmtSec(now.t-since)}<br><span style="color:var(--quiet)">${tr?'S'+tr.no:''}</span>`;if(state)tm.title=state;d.appendChild(moreBtn());d.appendChild(tm);el.appendChild(d);fitMore(d,key);};
   jobs.forEach(j=>{const st=j.ok===undefined?(j.mon&&j.mon.state==='work'?'일하는 중':'가는 중'):(j.ok?'완료':'실패');
-    row(monImg(j.role,0),`${nameOf(j.role)} · ${j.tool} ${j.label}`,` ${st}${j.detail&&j.detail!==j.rawTool?' — '+j.detail:''}`,HAB[j.role].room,j.start,j.tr,st);});
-  subs.forEach(mo=>{const tr=t.trainers.get(mo.subOf);row(monImg('sub',0),`${nameOf('sub')} · 서브에이전트`,` 조사 중 — ${mo.job.detail}`,null,mo.born||now.t,tr);});}
+    row(monImg(j.role,0),`${nameOf(j.role)} · ${j.tool} ${j.label}`,` ${st}${j.detail&&j.detail!==j.rawTool?' — '+j.detail:''}`,HAB[j.role].room,j.start,j.tr,st,j);});
+  subs.forEach(mo=>{const tr=t.trainers.get(mo.subOf);row(monImg('sub',0),`${nameOf('sub')} · 서브에이전트`,` 조사 중 — ${mo.job.detail}`,null,mo.born||now.t,tr,undefined,mo);});}
 function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!el)return;
   if(!t||!t.trainers.size){el.innerHTML=`<div class="empty">${LIVE?'Claude Code를 실행하면 트레이너가 출근해요.':'세션이 없어요.'}</div>`;return;}
   el.innerHTML='';const g=t.growth;
-  t.trainers.forEach(tr=>{const c=document.createElement('div');c.className='wrow';c.style.borderLeftColor=HATS[tr.color][0];
+  t.trainers.forEach(tr=>{const c=document.createElement('div');c.className='wrow';
     const st=tr.lounge&&tr.state==='idle'?'휴게실 · 내 차례':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'⚠ 승인·답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
-    c.innerHTML=`<div class="sw" style="width:40px;height:40px;background:${HATS[tr.color][0]}">S${tr.no}</div><div><div class="a"></div><div class="b"></div></div><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${jobs?jobs+'건':''}</div>`;
-    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ${String(tr.id).slice(0,8)}`;el.appendChild(c);});
+    c.innerHTML=`<div class="sw" style="width:40px;height:40px;background:${HATS[tr.color][0]}">S${tr.no}</div><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${jobs?jobs+'건':''}</div>`;
+    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,tr);});
   if(t.todos.length){const d=document.createElement('div');d.style.cssText='margin-top:8px;font-size:13px;line-height:1.7';d.innerHTML='<div class="muted" style="font-size:12px">화이트보드 할 일</div>';
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
 setInterval(()=>{if(!paused)renderWork();},1000);
@@ -651,7 +676,7 @@ demoSession('blog','sess-b1',async({E,tool})=>{await sleep(2500);
 // ───────── live (SSE from local server)
 function connectLive(){if(!SRC.server)return;const es=new EventSource('stream');
   es.onopen=()=>{if(!LIVE){LIVE=true;towns.clear();active=null;renderTowns();renderSide();}
-    $('liveState').innerHTML='<b style="color:var(--mint)">로컬 서버에 연결됨</b> — 프로젝트 폴더마다 사무실, 세션마다 트레이너가 생겨요.';$('modeChip').style.display='';$('modeChip').textContent='LIVE';$('modeChip').classList.add('live');demoOn=false;};
+    $('liveState').innerHTML='<b style="color:var(--mint)">● 로컬 서버에 연결됨</b>';$('modeChip').style.display='';$('modeChip').textContent='LIVE';$('modeChip').classList.add('live');demoOn=false;};
   es.onerror=()=>{$('liveState').textContent='서버 연결이 끊겼어요. 다시 시도하는 중…';$('modeChip').textContent='OFFLINE';$('modeChip').classList.remove('live');};
   es.onmessage=e=>{let ev;try{ev=JSON.parse(e.data);}catch{return;}handleEvent(ev);};}
 
