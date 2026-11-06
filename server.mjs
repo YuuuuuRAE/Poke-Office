@@ -74,13 +74,19 @@ function findSessions(minutes = 60) {
 
 // ── 사용 한도: Claude Code가 상태줄에 넘겨준 rate_limits 를 상태줄 스크립트가 저장해 둔 파일을 읽기만 함
 const LIMITS = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'statusline-cache.json');
+// \uC0C1\uD0DC\uC904\uC740 \uAC00\uB054 \uD55C\uCABD \uAC12\uB9CC \uBC1B\uC544 \uD30C\uC77C\uC744 \uB36E\uC5B4\uC4F0\uAC70\uB098 \uC4F0\uB294 \uB3C4\uC911\uC77C \uC218 \uC788\uC5B4\uC11C, \uB9C8\uC9C0\uB9C9\uC73C\uB85C \uBCF8 \uAC12\uC744 \uAE30\uC5B5\uD574 \uB460
+const lastLimits = { fiveHour: null, sevenDay: null, updated: 0 };
 function readLimits() {
+  const pick = (w) => (w && typeof w.used_percentage === 'number' ? { used: w.used_percentage, resetsAt: w.resets_at ?? null } : null);
   try {
     const j = JSON.parse(readFileSync(LIMITS, 'utf8').replace(/^\uFEFF/, ''));
-    const pick = (w) => (w && typeof w.used_percentage === 'number' ? { used: w.used_percentage, resetsAt: w.resets_at ?? null } : null);
-    const out = { available: true, fiveHour: pick(j.five_hour), sevenDay: pick(j.seven_day), updated: statSync(LIMITS).mtimeMs };
-    return out.fiveHour || out.sevenDay ? out : { available: false };
-  } catch { return { available: false }; }
+    const five = pick(j.five_hour), week = pick(j.seven_day);
+    if (five) lastLimits.fiveHour = five;
+    if (week) lastLimits.sevenDay = week;
+    if (five || week) lastLimits.updated = statSync(LIMITS).mtimeMs;
+  } catch { /* \uBABB \uC77D\uC73C\uBA74 \uB9C8\uC9C0\uB9C9 \uAC12 \uC0AC\uC6A9 */ }
+  const { fiveHour, sevenDay, updated } = lastLimits;
+  return fiveHour || sevenDay ? { available: true, fiveHour, sevenDay, updated } : { available: false };
 }
 
 // ── 대화 기록 지켜보기: 훅이 없는 순간을 메워요 (3초마다 새로 붙은 줄만 읽음)

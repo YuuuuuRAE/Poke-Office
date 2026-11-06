@@ -701,8 +701,10 @@ function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!e
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
 setInterval(()=>{if(!paused){renderWork();renderTimeline();}},1000);
 // Claude 사용 한도 (5시간 · 주간): 남은 양을 HP 바처럼. 상태줄 캐시가 없으면 숨김
+const LIM={fiveHour:null,sevenDay:null};
 async function loadLimits(){const el=$('limits');if(!SRC.server)return;let j;try{j=await(await fetch('api/limits',{cache:'no-store'})).json();}catch{return;}
-  if(!j.available){el.hidden=true;return;}
+  if(j.available){LIM.fiveHour=j.fiveHour||LIM.fiveHour;LIM.sevenDay=j.sevenDay||LIM.sevenDay;}j=LIM;
+  if(!j.fiveHour&&!j.sevenDay){el.hidden=true;return;}
   const card=(name,w,fmt)=>{if(!w)return'';const r=w.resetsAt?new Date((typeof w.resetsAt==='number'?w.resetsAt*1000:Date.parse(w.resetsAt))):null;
     const done=r&&r<=new Date();const left=done?100:Math.max(0,Math.min(100,Math.round(100-w.used)));const col=left>50?'#48c060':left>20?'#f0b020':'#e84838';
     const when=r&&!done?(fmt==='t'?r.toTimeString().slice(0,5):`${r.getMonth()+1}/${r.getDate()}(${'일월화수목금토'[r.getDay()]}) ${r.toTimeString().slice(0,5)}`)+' 초기화':'';
