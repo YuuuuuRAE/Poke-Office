@@ -108,6 +108,27 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .tip{position:fixed;z-index:40;pointer-events:none;max-width:260px;padding:6px 10px;background:#fffaf0;color:#2a1e18;border:3px solid #2a1e18;border-radius:6px;box-shadow:0 0 0 2px #fffaf0,0 0 0 5px #4a4a5e,0 6px 0 5px rgba(0,0,0,.35);font-size:12.5px;line-height:1.5}
 .tip[hidden]{display:none}.tip b{font-size:13.5px}.tip .st{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;font-size:11px;color:#fff}
 .tip small{display:block;margin-top:2px;color:#8a7a68;font-size:11px}
+.mini{padding:3px 8px;font-size:11.5px;border-width:2px;border-radius:7px;box-shadow:0 2px 0 var(--shadow)}
+.mini:disabled{opacity:.4;cursor:default}
+#tlPanel{margin-top:16px}
+.rng{display:flex;gap:4px}.rng button{padding:2px 7px;font-size:11px;border-width:2px;border-radius:6px;box-shadow:none}
+.tlrow{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;margin-bottom:6px}
+.tlwho{font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;text-align:center;padding:5px 0;border-radius:6px}
+.tltrack{position:relative;background:var(--panel2);border-radius:6px;overflow:hidden}
+.tltrack .blk{position:absolute;height:6px;min-width:3px;border-radius:2px;cursor:pointer}
+.tltrack .blk:hover{outline:2px solid #fff;z-index:2}
+.tltrack .blk.run{animation:pulse 1s infinite}.tltrack .blk.fail{background:#ff6b6b!important;box-shadow:0 0 0 1px #ffd0d0}
+.tltrack .mk{position:absolute;top:0;bottom:0;width:2px;opacity:.85;cursor:pointer}
+.tlaxis{display:flex;justify-content:space-between;margin:2px 0 0 42px;font-size:10.5px;color:var(--quiet)}
+.tllegend{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;color:var(--quiet)}
+.tllegend i{display:inline-block;width:10px;height:6px;border-radius:2px;margin-right:4px;vertical-align:1px}
+.limits{display:flex;gap:10px;flex-wrap:wrap}
+.hp{min-width:190px;padding:6px 10px 5px;background:#f6f2e4;color:#2a1e18;border:3px solid #2a1e18;border-radius:8px 8px 8px 2px;box-shadow:0 0 0 2px #f6f2e4,0 0 0 5px #4a4a5e}
+.hp .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px}.hp .top b{font-size:13px}
+.hp .bar{display:flex;align-items:center;gap:5px;margin:3px 0 1px}
+.hp .bar span{font-family:'Press Start 2P',monospace;font-size:7px;color:#f8b030;background:#3a3a4a;padding:2px 3px;border-radius:3px}
+.hp .bar div{flex:1;height:8px;background:#5a5a6a;border:2px solid #3a3a4a;border-radius:5px;overflow:hidden}.hp .bar i{display:block;height:100%;transition:width .6s}
+.hp small{display:block;font-size:10.5px;color:#7a6a58;text-align:right}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -119,6 +140,7 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       <div class="kicker">CLAUDE CODE X Pokemon</div>
       <h1><svg class="pball" viewBox="0 0 12 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#1b1820" d="M4 0h4v1h2v1h1v2h1v4h-1v2h-1v1h-2v1H4v-1H2v-1H1V8H0V4h1V2h1V1h2z"/><path fill="#e8473b" d="M4 1h4v1h2v2h1v1H1V4h1V2h2z"/><path fill="#ff8a7a" d="M3 2h2v1H3z"/><path fill="#f4f0e8" d="M1 7h10v1h-1v2H8v1H4v-1H2V8H1z"/><path fill="#1b1820" d="M1 5h10v2H1z"/><path fill="#f4f0e8" d="M5 5h2v2H5z"/></svg>Poke Office</h1>
     </div>
+    <div class="limits" id="limits" hidden></div>
   </header>
 
   <div class="grid">
@@ -131,6 +153,10 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       <div class="towns" id="towns"></div>
       <div class="stage"><canvas id="office" width="2048" height="1280" aria-label="픽셀 사무실"></canvas></div>
       <div id="dlgBox"><i id="dlgDot"></i><span id="dlgText"></span><button class="more" id="dlgMore" hidden title="더보기">▾</button></div>
+      <section class="panel" id="tlPanel">
+        <h2>작업 타임라인 <span class="rng" id="tlRange"><button data-m="1">1분</button><button data-m="5">5분</button><button data-m="15" class="on">15분</button><button data-m="60">1시간</button></span></h2>
+        <div class="body"><div id="tl"></div><div class="tllegend" id="tlLegend"></div></div>
+      </section>
     </div>
 
     <div class="side">
@@ -140,7 +166,7 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       </section>
 
       <section class="panel">
-        <h2>세션</h2>
+        <h2>세션 <span style="display:flex;gap:6px;align-items:center"><span id="findMsg" style="font-family:inherit;font-size:11px;color:var(--quiet)"></span><button class="mini" id="findSess" title="최근 1시간 안에 쓴 Claude Code 세션을 찾아요">세션 찾기</button></span></h2>
         <div class="body" id="sessList"></div>
       </section>
 
@@ -465,7 +491,7 @@ const now={t:0};let speed=1,paused=false;const timers=[];const sleep=ms=>new Pro
 const towns=new Map();let active=null;const dexStats={};ROLES.forEach(r=>dexStats[r]={count:0,last:''});
 let LIVE=false;const IDLE_MS=()=>LIVE?5*60e3:30e3;
 function getTown(name){let t=towns.get(name);if(t)return t;
-  t={name,trainers:new Map(),mons:[],jobs:[],todos:[],growth:{done:0,edits:0,plants:0,trophies:0},lastTest:null,ticker:[],fx:[]};
+  t={name,trainers:new Map(),mons:[],jobs:[],hist:[],marks:[],todos:[],growth:{done:0,edits:0,plants:0,trophies:0},lastTest:null,ticker:[],fx:[]};
   towns.set(name,t);if(!active)active=name;renderTowns();return t;}
 function mkMon(role,helper,at){const p=at||randomFloor(HAB[role].room);return{role,helper,x:p.x,y:p.y,path:[],state:'wander',pause:rand(300,2500),idle:0,job:null,face:1,t:0,carry:false};}
 function goTo(o,x,y){o.path=findPath(o.x,o.y,x,y);}
@@ -491,7 +517,7 @@ function handleEvent(ev){
   const act=resolveAction(ev.tool,ev);const role=act.role;
   switch(ev.kind){
     case 'session_start':break;
-    case 'prompt':toSeat(tr);tr.prompt=ev.full||ev.detail||'';tr.state='think';tr.bubble=`"${(ev.detail||'').slice(0,16)}"`;setTimeout(()=>{if(tr.bubble&&tr.bubble.startsWith('"'))tr.bubble='…';},2500/speed);
+    case 'prompt':toSeat(tr);tr.prompt=ev.full||ev.detail||'';town.marks.push({t:now.t,wall:Date.now(),tr,text:tr.prompt});if(town.marks.length>200)town.marks.shift();tr.state='think';tr.bubble=`"${(ev.detail||'').slice(0,16)}"`;setTimeout(()=>{if(tr.bubble&&tr.bubble.startsWith('"'))tr.bubble='…';},2500/speed);
 
       ticker(town,`${tname(tr)}: "${tr.prompt||'새 지시'}"`,tr);log('prompt',`${town.name}·${tr.no} ${tr.prompt}`);break;
     case 'tool_start':
@@ -518,14 +544,14 @@ function releaseMon(town,tr,mo){mo.owner=tr;const p=besideTrainer(town,tr);mo.x=
 function recallMon(town,mo){const tr=mo.owner;if(!tr||!town.trainers.has(tr.id)){mo.state='vanish';mo.t=350;town.fx.push({type:'poof',x:mo.x,y:mo.y-10,t:0});return;}
   mo.state='return';const p=besideTrainer(town,tr);goTo(mo,p.x,p.y);}
 function newJob(town,tr,ev,act){const role=act.role;const job={id:ev.id||`${ev.session}:${ev.tool}:${now.t}:${Math.random()}`,tool:act.tool,rawTool:ev.tool,label:act.label,key:`${ev.session}:${ev.tool}`,role,detail:ev.detail||ev.tool,full:ev.full||ev.cmd||ev.detail||ev.tool,tr,ok:undefined,start:now.t,endAt:null,mon:null};
-  town.jobs.push(job);tr.state='think';town.restMode=false;
+  job.wall=Date.now();town.jobs.push(job);town.hist.push(job);if(town.hist.length>800)town.hist.shift();tr.state='think';town.restMode=false;
   const mon=mkMon(role,false,{x:tr.x,y:tr.y});town.mons.push(mon);releaseMon(town,tr,mon);
   mon.job=job;job.mon=mon;
   ticker(town,`${tname(tr)}: 가라, ${nameOf(role)}! — 「${actText(act)}」 ${job.detail} (${HAB[role].name})`,tr);log('tool_start',`${town.name}·${tr.no} ${ev.tool} (${act.label}): ${job.full}`);}
 function findJob(town,tr,ev){let j=ev.id&&town.jobs.find(x=>x.id===ev.id&&x.ok===undefined);if(!j)j=town.jobs.find(x=>x.key===`${ev.session}:${ev.tool}`&&x.ok===undefined);if(!j)j=town.jobs.find(x=>x.rawTool===ev.tool&&x.ok===undefined);return j;}
-function spawnSub(town,tr,ev){const mo=mkMon('sub',true,{x:tr.x,y:tr.y});mo.subOf=tr.id;mo.job={detail:ev.detail||'조사'};mo.afterAppear='subwork';town.mons.push(mo);releaseMon(town,tr,mo);
+function spawnSub(town,tr,ev){const mo=mkMon('sub',true,{x:tr.x,y:tr.y});mo.subOf=tr.id;mo.job={detail:ev.detail||'조사',full:ev.full||ev.detail};const rec={role:'sub',tool:'Agent',label:'서브에이전트',detail:ev.detail||'조사',full:ev.full||ev.detail||'',tr,start:now.t,wall:Date.now(),endAt:null,ok:undefined};town.hist.push(rec);mo.rec=rec;mo.afterAppear='subwork';town.mons.push(mo);releaseMon(town,tr,mo);
   ticker(town,`${tname(tr)}의 「Agent · 서브에이전트 출동」! ${josa(nameOf('sub'),'이/가')} 조사하러 나갔다: ${ev.detail||''}`,tr);log('sub',`${town.name}·${tr.no} Task ${ev.detail||''}`);dexStats.sub.count++;dexStats.sub.last=ev.detail||'';renderDex();}
-function endSub(town,tr){const mo=town.mons.find(m=>m.role==='sub'&&m.subOf===tr.id&&!['return','recall','vanish'].includes(m.state));if(!mo)return;mo.carry=true;recallMon(town,mo);
+function endSub(town,tr){const mo=town.mons.find(m=>m.role==='sub'&&m.subOf===tr.id&&!['return','recall','vanish'].includes(m.state));if(!mo)return;if(mo.rec){mo.rec.endAt=now.t;mo.rec.ok=true;}mo.carry=true;recallMon(town,mo);
   ticker(town,`${josa(nameOf('sub'),'이/가')} 조사 결과를 들고 돌아왔다!`,tr);log('sub',`${town.name}·${tr.no} SubagentStop`);}
 function sendRest(){}
 
@@ -589,7 +615,48 @@ function fitMore(d,title,body,raw){const btn=d.querySelector('.more');if(!btn)re
   const shown=[...d.querySelectorAll('.txt > div')];const over=shown.some(x=>x.scrollWidth>x.clientWidth+1);
   const longer=raw&&!shown.some(x=>x.textContent.includes(raw));btn.hidden=!(over||longer);
   btn.onclick=e=>{e.stopPropagation();openModal(title,body||shown.map(x=>x.textContent).join('\n'));};}
-function renderSide(){renderWork();renderSessions();}
+function renderSide(){renderWork();renderSessions();renderTimeline();}
+// 작업 타임라인: 세션(트레이너)마다 한 줄, 툴 실행을 방 색 블록으로. 겹치는 작업은 아래 칸으로 내려요
+let TLW=15*60e3,tlItems=[];
+const roleColor=r=>r==='sub'?ROOMS.plan.tag:ROOMS[HAB[r].room].tag;
+const wallClock=w=>new Date(w).toTimeString().slice(0,8);
+function renderTimeline(){const el=$('tl');if(!el)return;const t=towns.get(active);tlItems=[];
+  const t1=now.t,t0=t1-TLW,pct=v=>Math.max(0,Math.min(100,(v-t0)/TLW*100));
+  const items=t?t.hist.filter(j=>(j.endAt??t1)>=t0):[],marks=t?t.marks.filter(m=>m.t>=t0):[];
+  if(!items.length&&!marks.length){el.innerHTML='<div class="empty">이 시간 동안 기록된 작업이 없어요.<br><span style="font-size:12px">Claude Code가 툴을 쓰면 여기에 시간순으로 쌓여요.</span></div>';$('tlLegend').innerHTML='';return;}
+  const rows=new Map();const rowOf=tr=>{if(!rows.has(tr.no))rows.set(tr.no,{tr,blocks:[],marks:[]});return rows.get(tr.no);};
+  items.forEach(j=>rowOf(j.tr).blocks.push(j));marks.forEach(m=>rowOf(m.tr).marks.push(m));
+  let html='';
+  [...rows.values()].sort((a,b)=>a.tr.no-b.tr.no).forEach(row=>{const lanes=[];
+    const blks=row.blocks.sort((a,b)=>a.start-b.start).map(j=>{const end=j.endAt??t1;let l=lanes.findIndex(e=>e<=j.start);if(l<0){l=lanes.length;lanes.push(0);}lanes[l]=end;return{j,end,l};});
+    const n=Math.max(1,lanes.length);let inner='';
+    blks.forEach(({j,end,l})=>{const i=tlItems.push({type:'job',j})-1;const cls=j.ok===undefined?'run':j.ok?'':'fail';
+      inner+=`<i class="blk ${cls}" data-i="${i}" style="left:${pct(j.start)}%;width:${Math.max(.35,pct(end)-pct(j.start))}%;top:${3+l*8}px;background:${roleColor(j.role)}"></i>`;});
+    row.marks.forEach(m=>{const i=tlItems.push({type:'mark',m})-1;inner+=`<i class="mk" data-i="${i}" style="left:${pct(m.t)}%;background:${HATS[m.tr.color][0]}"></i>`;});
+    html+=`<div class="tlrow"><div class="tlwho" style="background:${HATS[row.tr.color][0]}">S${row.tr.no}</div><div class="tltrack" style="height:${n*8+4}px">${inner}</div></div>`;});
+  // 눈금은 딱 떨어지게: 1분=15초 간격, 5분=1분, 15분=3분, 1시간=15분
+  const m=TLW/60e3,n={1:4,5:5,15:5,60:4}[m]||4,lab=v=>v<1?`${Math.round(v*60)}초`:`${v}분`;
+  html+=`<div class="tlaxis">${Array.from({length:n},(_,i)=>`<span>-${lab(m*(n-i)/n)}</span>`).join('')}<span>지금</span></div>`;
+  el.innerHTML=html;
+  if(!$('tlLegend').innerHTML)$('tlLegend').innerHTML=[['research','조사'],['dev','수정'],['test','검증'],['term','실행·외부'],['plan','서브에이전트']].map(([k,n])=>`<span><i style="background:${ROOMS[k].tag}"></i>${n}</span>`).join('')+'<span><i style="background:#ff6b6b"></i>실패</span><span><i style="background:#fff;width:2px;height:10px"></i>프롬프트</span>';}
+function tlInfo(it){if(it.type==='mark'){const m=it.m;return{title:`${tname(m.tr)} · 프롬프트`,tip:`<b>${tname(m.tr)}</b><span class="st" style="background:${HATS[m.tr.color][0]}">프롬프트</span><br>"${esc(m.text.slice(0,60))}${m.text.length>60?'…':''}"<small>${wallClock(m.wall)} · 클릭하면 전체 보기</small>`,body:`보낸 시각: ${wallClock(m.wall)}\n\n${m.text}`};}
+  const j=it.j,st=j.ok===undefined?'진행 중':j.ok?'완료':'실패',dur=fmtSec((j.endAt??now.t)-j.start);
+  return{title:`${tname(j.tr)} · ${j.tool} ${j.label}`,tip:`<b>${esc(j.tool)} · ${esc(j.label)}</b><span class="st" style="background:${j.ok===false?'#e85a5a':roleColor(j.role)}">${st}</span><br>${esc(String(j.detail||'').slice(0,50))}<small>${tname(j.tr)} · ${wallClock(j.wall)} 시작 · ${dur}</small>`,
+    body:`상태: ${st}\n시작: ${wallClock(j.wall)} · 걸린 시간: ${dur}\n담당: ${nameOf(j.role)} (${j.role==='sub'?'기획실':HAB[j.role].name})\n\n${j.full||j.detail}`};}
+$('tl').addEventListener('mousemove',e=>{const b=e.target.closest('[data-i]');if(!b)return showTip(null,'');const it=tlItems[+b.dataset.i];if(it)showTip(e,tlInfo(it).tip);});
+$('tl').addEventListener('mouseleave',()=>showTip(null,''));
+$('tl').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b)return;const it=tlItems[+b.dataset.i];if(!it)return;const x=tlInfo(it);showTip(null,'');openModal(x.title,x.body);});
+document.querySelectorAll('#tlRange button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tlRange button').forEach(x=>x.classList.toggle('on',x===b));TLW=+b.dataset.m*60e3;renderTimeline();});
+// 세션 찾기: 훅이 아직 안 들어온(이미 열려 있던) Claude Code 세션도 대화 기록 폴더에서 찾아 트레이너로 불러와요
+async function findSessions(){const btn=$('findSess'),msg=$('findMsg');if(!SRC.server){msg.textContent='서버에서만 쓸 수 있어요';return;}
+  btn.disabled=true;msg.textContent='찾는 중…';
+  try{const list=await(await fetch('api/sessions?minutes=60',{cache:'no-store'})).json();let added=0;
+    list.forEach(x=>{const name=String(x.cwd).split(/[\\/]/).filter(Boolean).pop()||'my-project';const t=towns.get(name);if(t&&t.trainers.has(x.session))return;
+      handleEvent({kind:'session_start',session:x.session,cwd:x.cwd});const tr=getTown(name).trainers.get(x.session);if(tr&&x.prompt)tr.prompt=x.prompt;added++;});
+    msg.textContent=added?`${added}개 찾았어요`:list.length?'새 세션이 없어요':'최근 1시간 안에 쓴 세션이 없어요';log('session',`세션 찾기: ${added}개 추가 (최근 1시간 ${list.length}개)`);renderTowns();renderSide();}
+  catch{msg.textContent='찾지 못했어요';}
+  btn.disabled=false;setTimeout(()=>{msg.textContent='';},4000);}
+$('findSess').onclick=findSessions;
 function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)return;
   const jobs=t?t.jobs:[];const subs=t?t.mons.filter(m=>m.role==='sub'&&m.state==='subwork'):[];
   {const n=jobs.length+subs.length;$('workSum').textContent=n?`${n}개의 작업 중`:'';}
@@ -613,7 +680,16 @@ function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!e
     c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ID: ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
   if(t.todos.length){const d=document.createElement('div');d.style.cssText='margin-top:8px;font-size:13px;line-height:1.7';d.innerHTML='<div class="muted" style="font-size:12px">화이트보드 할 일</div>';
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
-setInterval(()=>{if(!paused)renderWork();},1000);
+setInterval(()=>{if(!paused){renderWork();renderTimeline();}},1000);
+// Claude 사용 한도 (5시간 · 주간): 남은 양을 HP 바처럼. 상태줄 캐시가 없으면 숨김
+async function loadLimits(){const el=$('limits');if(!SRC.server)return;let j;try{j=await(await fetch('api/limits',{cache:'no-store'})).json();}catch{return;}
+  if(!j.available){el.hidden=true;return;}
+  const card=(name,w,fmt)=>{if(!w)return'';const r=w.resetsAt?new Date((typeof w.resetsAt==='number'?w.resetsAt*1000:Date.parse(w.resetsAt))):null;
+    const done=r&&r<=new Date();const left=done?100:Math.max(0,Math.min(100,Math.round(100-w.used)));const col=left>50?'#48c060':left>20?'#f0b020':'#e84838';
+    const when=r&&!done?(fmt==='t'?r.toTimeString().slice(0,5):`${r.getMonth()+1}/${r.getDate()} ${r.toTimeString().slice(0,5)}`)+' 초기화':'';
+    return `<div class="hp" title="${name} 사용 한도: ${done?'초기화됨':`${Math.round(w.used)}% 사용`}"><div class="top"><b>${name}</b><span>남은 ${left}%</span></div><div class="bar"><span>HP</span><div><i style="width:${left}%;background:${col}"></i></div></div><small>${when||'&nbsp;'}</small></div>`;};
+  el.innerHTML=card('5시간',j.fiveHour,'t')+card('주간',j.sevenDay,'d');el.hidden=!el.innerHTML;}
+setInterval(loadLimits,30000);
 function thumb(c,img){const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,48,48);const s=Math.min(44/img.width,44/img.height);const w=img.width*s,h=img.height*s;x.drawImage(img,(48-w)/2,(48-h)/2,w,h);}
 function buildDex(){}
 function renderDex(){buildPack();}
@@ -877,7 +953,7 @@ cv.addEventListener('pointerup',e=>{if(grab)return grabEnd();if(downAt&&Math.hyp
 
 // boot
 (async()=>{const saved=store.get('pokeoffice.pack');if(saved){Object.assign(cfg,saved.cfg||{});ROLES.forEach(r=>{if(!cfg[r])cfg[r]={dex:DEF[r].dex,name:''};});for(const [k,u] of Object.entries(saved.urls||{}))await loadDataUrl(k,u);}
-  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);drawMap();buildPack();renderSide();requestAnimationFrame(frame);await detectSource();await applyDefaults();buildPack();if(SRC.server)connectLive();else startDemo();})();
+  await Promise.race([document.fonts?document.fonts.ready:Promise.resolve(),new Promise(r=>setTimeout(r,1500))]);drawMap();buildPack();renderSide();requestAnimationFrame(frame);await detectSource();await applyDefaults();buildPack();if(SRC.server){connectLive();loadLimits();}else startDemo();})();
 })();
 </script>
 </body>

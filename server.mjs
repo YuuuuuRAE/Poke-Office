@@ -4,10 +4,13 @@
 //   GET  /sprites/...   → vendor/sprites/sprites/pokemon/... (이 PC에 받은 스프라이트)
 //   GET  /api/health    → { sprites, names }
 //   GET  /api/names     → [{ id, ko, en }]
+//   GET  /api/sessions  → 최근에 쓰인 Claude Code 세션 (대화 기록 폴더에서 찾음)
+//   GET  /api/limits    → 5시간·주간 사용 한도 (상태줄이 저장한 ~/.claude/statusline-cache.json 이 있을 때만)
 //   POST /events        → hook.mjs 가 보내는 OfficeEvent
 //   GET  /stream        → 화면이 구독하는 Server-Sent Events
 import { createServer } from 'node:http';
-import { existsSync, readFileSync, createReadStream } from 'node:fs';
+import { existsSync, readFileSync, createReadStream, readdirSync, statSync, openSync, readSync, closeSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -23,6 +26,61 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.json'
 if (!existsSync(join(SPR_DIR, '25.png')) && !process.env.POKE_OFFICE_NO_SETUP) {
   console.log('[poke-office] 스프라이트가 없어서 지금 받아요…');
   spawnSync(process.execPath, [join(ROOT, 'scripts/setup-sprites.mjs')], { stdio: 'inherit' });
+}
+
+// ── 세션 찾기: ~/.claude/projects/*/<세션ID>.jsonl 중 최근에 바뀐 파일을 읽어 작업 폴더와 마지막 프롬프트를 꺼냄
+const PROJECTS = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'projects');
+function tailText(file, max = 256 * 1024) {
+  const fd = openSync(file, 'r');
+  try {
+    const size = statSync(file).size, len = Math.min(size, max), buf = Buffer.alloc(len);
+    readSync(fd, buf, 0, len, size - len);
+    const lines = buf.toString('utf8').split('\n');
+    if (len < size) lines.shift();
+    return lines;
+  } finally { closeSync(fd); }
+}
+function promptText(e) {
+  if (e.type !== 'user' || e.isMeta || e.isSidechain) return '';
+  const c = e.message?.content;
+  const t = typeof c === 'string' ? c
+    : Array.isArray(c) && !c.some((b) => b.type === 'tool_result') ? c.filter((b) => b.type === 'text').map((b) => b.text).join('\n') : '';
+  return t && !t.trim().startsWith('<') ? t.trim() : ''; // <command-name> 같은 내부 메시지는 제외
+}
+function findSessions(minutes = 60) {
+  const out = [], since = Date.now() - minutes * 60e3;
+  let dirs = [];
+  try { dirs = readdirSync(PROJECTS); } catch { return out; }
+  for (const d of dirs) {
+    let files = [];
+    try { files = readdirSync(join(PROJECTS, d)).filter((f) => f.endsWith('.jsonl')); } catch { continue; }
+    for (const f of files) {
+      const file = join(PROJECTS, d, f);
+      let st; try { st = statSync(file); } catch { continue; }
+      if (st.mtimeMs < since) continue;
+      let cwd = '', prompt = '';
+      try {
+        for (const line of tailText(file)) {
+          let e; try { e = JSON.parse(line); } catch { continue; }
+          if (e.cwd) cwd = e.cwd;
+          const t = promptText(e); if (t) prompt = t;
+        }
+      } catch { continue; }
+      if (cwd) out.push({ session: f.replace(/\.jsonl$/, ''), cwd, prompt: prompt.slice(0, 4000), updated: st.mtimeMs });
+    }
+  }
+  return out.sort((a, b) => b.updated - a.updated).slice(0, 12);
+}
+
+// ── 사용 한도: Claude Code가 상태줄에 넘겨준 rate_limits 를 상태줄 스크립트가 저장해 둔 파일을 읽기만 함
+const LIMITS = join(process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude'), 'statusline-cache.json');
+function readLimits() {
+  try {
+    const j = JSON.parse(readFileSync(LIMITS, 'utf8').replace(/^\uFEFF/, ''));
+    const pick = (w) => (w && typeof w.used_percentage === 'number' ? { used: w.used_percentage, resetsAt: w.resets_at ?? null } : null);
+    const out = { available: true, fiveHour: pick(j.five_hour), sevenDay: pick(j.seven_day), updated: statSync(LIMITS).mtimeMs };
+    return out.fiveHour || out.sevenDay ? out : { available: false };
+  } catch { return { available: false }; }
 }
 
 const clients = new Set();
@@ -48,6 +106,10 @@ const server = createServer((req, res) => {
   }
   if (req.method === 'GET' && p === '/api/health') {
     return send(res, 200, { ok: true, sprites: existsSync(join(SPR_DIR, '25.png')), names: existsSync(NAMES) });
+  }
+  if (req.method === 'GET' && p === '/api/limits') return send(res, 200, readLimits());
+  if (req.method === 'GET' && p === '/api/sessions') {
+    return send(res, 200, findSessions(Math.min(24 * 60, +(url.searchParams.get('minutes') || 60))));
   }
   if (req.method === 'GET' && p === '/api/names') {
     return existsSync(NAMES) ? send(res, 200, readFileSync(NAMES)) : send(res, 404, { error: 'npm run setup 먼저' });
