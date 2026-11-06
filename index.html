@@ -26,14 +26,12 @@ h1 span{color:var(--ink)}
 .dot{width:9px;height:9px;border-radius:50%;background:#bbb;display:inline-block}
 .dot.work{background:#4fbf5a}.dot.wait{background:#f0b020;animation:pulse 1s infinite}.dot.idle{background:#b8a890}
 @keyframes pulse{50%{opacity:.3}}
-#dlgBox{display:flex;align-items:center;gap:10px;margin-top:10px;min-height:52px;padding:10px 14px;background:#fffaf0;color:#2a1e18;border:4px solid #000;border-radius:10px;box-shadow:0 0 0 3px var(--line);font-size:16px;line-height:1.4}
+#dlgBox{display:flex;align-items:center;gap:10px;min-width:0;margin-top:10px;min-height:52px;padding:10px 14px;background:#fffaf0;color:#2a1e18;border:4px solid #000;border-radius:10px;box-shadow:0 0 0 3px var(--line);font-size:16px;line-height:1.4}
 #dlgDot{flex:none;width:14px;height:14px;border-radius:4px;background:transparent}
-.stage.zoom{overflow-x:auto;-webkit-overflow-scrolling:touch}.stage.zoom canvas#office{width:220%;max-width:none}
+#dlgText{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dlgBox .more{color:#6b5a48;border-color:#c8b89a}
 .stage{border:4px solid #000;border-radius:10px;overflow:hidden;box-shadow:0 0 0 3px var(--line),0 8px 0 3px var(--shadow);background:#2a1e18}
-canvas#office{display:block;width:100%;height:auto;image-rendering:pixelated;cursor:pointer}
-.below{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
-.info{flex:1 1 260px;min-height:38px;padding:8px 12px;background:var(--panel);border:3px solid var(--line);border-radius:10px;font-size:13px;color:var(--quiet)}
-.info b{color:var(--ink)}
+canvas#office{display:block;width:100%;height:auto;image-rendering:pixelated;touch-action:pan-y pinch-zoom}
 button{font-family:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:3px solid var(--line);border-radius:10px;padding:7px 11px;cursor:pointer;box-shadow:0 3px 0 var(--shadow)}
 button:hover{border-color:#c4a874}
 button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
@@ -47,9 +45,8 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .wrow canvas{width:40px;height:40px;image-rendering:pixelated;background:#3a3348;border-radius:8px}
 .wrow .txt{min-width:0}.wrow .a{font-size:14px}.wrow .b{font-size:12px;color:var(--quiet);margin-top:2px}
 .wrow .a,.wrow .b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wrow.open{align-items:start}.wrow.open .a,.wrow.open .b{white-space:normal;overflow:visible;overflow-wrap:anywhere}
-.wrow .more{width:20px;height:20px;padding:0;border-width:2px;border-radius:6px;box-shadow:none;font-size:10px;line-height:1;color:var(--quiet);background:transparent}
-.wrow .more:hover{color:var(--ink)}.wrow .more[hidden]{display:none}
+.more{flex:none;width:20px;height:20px;padding:0;border-width:2px;border-radius:6px;box-shadow:none;font-size:10px;line-height:1;color:var(--quiet);background:transparent}
+.more:hover{color:var(--ink)}.more[hidden]{display:none}
 .cmap{display:flex;flex-direction:column;gap:6px;margin:0 0 14px}
 .cmap div{display:grid;grid-template-columns:1fr 18px 1fr;align-items:center;gap:6px;font-size:12.5px}
 .cmap span{padding:6px 8px;border-radius:8px;background:var(--panel2);text-align:center}
@@ -57,13 +54,13 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .sect{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--mint);margin:0 0 8px}
 .wrow .tm{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--amber);text-align:right;line-height:1.8}
 .room{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;margin-right:4px;color:#fff}
-.empty{text-align:center;padding:14px 6px;color:var(--quiet);font-size:13px;line-height:1.6}
+.empty{text-align:center;padding:14px 6px;color:var(--quiet);font-size:13px;line-height:1.6;word-break:keep-all}
 .alert{display:none;margin-bottom:12px;padding:12px;border:3px solid var(--amber);border-radius:12px;background:#3a2e12;color:#ffe9a8;box-shadow:0 4px 0 #000}
 .alert.show{display:block}.alert .row{display:flex;gap:8px;margin-top:10px}.alert .row button{flex:1}
 .tabs{display:flex;border-bottom:3px dashed var(--line)}
 .tabs button{flex:1;border:0;box-shadow:none;border-radius:0;background:transparent;font-family:'Press Start 2P',monospace;font-size:8.5px;padding:11px 2px;color:var(--quiet)}
 .tabs button.on{color:var(--mint);background:var(--panel2)}
-.tab{display:none;padding:10px 12px;max-height:540px;overflow:auto}.tab.on{display:block}
+.tab{display:none;padding:10px 12px}.tab.on{display:block}
 .card{display:grid;grid-template-columns:50px 1fr auto;gap:10px;align-items:center;padding:8px;border:3px solid transparent;border-radius:12px;margin-bottom:6px;background:var(--panel2)}
 .card.sel{border-color:var(--leaf)}.card.busy{border-color:var(--amber)}
 .card canvas{width:50px;height:50px;image-rendering:pixelated;background:#3a3348;border-radius:10px}
@@ -71,7 +68,12 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .card .t{font-size:12px;color:var(--quiet);margin-top:2px}
 .sw{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P';font-size:10px;color:#fff;text-shadow:1px 1px 0 rgba(0,0,0,.3)}
 .log{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.55}
-.log div{padding:3px 0;border-bottom:1px dashed var(--line);display:flex;gap:6px}
+.log div{padding:3px 0;border-bottom:1px dashed var(--line);display:flex;gap:6px;min-width:0}
+#logList div{cursor:pointer}#logList div:hover{background:var(--panel2)}
+#logList .tx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbody .log .tx{white-space:pre-wrap;overflow-wrap:anywhere}
+.k.claude{color:#ff9f7a}
+.rline{padding:7px 9px;margin-top:6px;border-radius:9px;background:var(--panel2);font-size:13px}.rline .b{font-size:12px;color:var(--quiet);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rline[title]:hover{outline:2px solid var(--line)}
 .log .ts{color:#b0a080;flex:none}.log .k{flex:none;font-weight:700}
 .k.tool_start{color:var(--blue)}.k.tool_end{color:var(--mint)}.k.notify{color:var(--amber)}.k.fail{color:var(--red)}.k.prompt{color:#a050c0}.k.stop,.k.session{color:var(--quiet)}.k.sub{color:#d07a20}
 .muted{color:var(--quiet);font-size:12.5px;line-height:1.55}
@@ -83,6 +85,23 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 input[type=text]{font-family:inherit;font-size:13px;background:#14111a;color:var(--ink);border:3px solid var(--line);border-radius:10px;padding:7px}
 code{font-size:12px;color:#ffd0a0;background:#2e2938;padding:0 3px;border-radius:4px}
 pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:auto}
+/* 가운데 팝업 (더보기 · 활동 기록 · 포켓몬 도감) */
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,6,12,.72)}
+.modal[hidden]{display:none}
+.mbox{width:min(560px,100%);max-height:min(80vh,760px);display:flex;flex-direction:column;background:var(--panel);border:3px solid var(--line);border-radius:14px;box-shadow:0 6px 0 var(--shadow);overflow:hidden}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:3px dashed var(--line)}
+.mhead b{font-size:14px;color:var(--mint);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mhead button{padding:3px 9px}
+.mbody{padding:12px;overflow:auto;overscroll-behavior:contain}
+.mtext{margin:0;font-family:inherit;font-size:13.5px;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere;background:none;padding:0}
+.modal.dex .mbox{width:min(760px,100%);height:min(86vh,820px);max-height:none;border-color:#c0392b}
+.modal.dex .mhead{background:#c0392b;border-bottom:3px solid #8e2a20}.modal.dex .mhead b{color:#fff}
+.dexbar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:3px dashed var(--line);flex-wrap:wrap}
+.dexbar input[type=text]{flex:1;min-width:160px}
+.dexgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.dexgrid button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px;font-size:12px;box-shadow:0 2px 0 var(--shadow)}
+.dexgrid button img{width:64px;height:64px;image-rendering:pixelated}
+.dexgrid .no{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--quiet)}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -106,38 +125,29 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       </div>
       <div class="towns" id="towns"></div>
       <div class="stage"><canvas id="office" width="2048" height="1280" aria-label="픽셀 사무실"></canvas></div>
-      <div id="dlgBox"><i id="dlgDot"></i><span id="dlgText"></span></div>
-      <div class="below">
-        <button id="zoomBtn">🔍 확대</button>
-        <div class="info" id="info">포켓몬이나 트레이너를 탭해 보세요.</div>
-      </div>
+      <div id="dlgBox"><i id="dlgDot"></i><span id="dlgText"></span><button class="more" id="dlgMore" hidden title="더보기">▾</button></div>
     </div>
 
     <div class="side">
       <section class="panel">
-        <h2>지금 일하는 중 <span id="workSum" style="color:var(--quiet)"></span></h2>
+        <h2>작업 목록 <span id="workSum" style="color:var(--quiet)"></span></h2>
         <div class="body" id="workList"></div>
       </section>
 
       <section class="panel">
-        <h2>세션 <span style="color:var(--quiet)">트레이너 = Claude Code 창</span></h2>
+        <h2>세션</h2>
         <div class="body" id="sessList"></div>
       </section>
 
       <section class="panel">
         <div class="tabs">
-          <button class="on" data-tab="team">포켓몬 팀</button>
+          <button class="on" data-tab="team">내 파티</button>
           <button data-tab="log">활동 기록</button>
           <button data-tab="set">연결</button>
         </div>
         <div class="tab on" id="tab-team">
           <div id="srcState" class="muted" style="margin:0 0 10px;padding:8px 10px;border:2px dashed var(--line);border-radius:10px"></div>
           <div id="teamList"></div>
-          <div id="picker" style="display:none;margin-top:10px;padding:10px;border:3px solid var(--leaf);border-radius:12px;background:var(--panel2)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b id="pickTitle" style="font-size:14px"></b><button id="pickClose" style="padding:3px 8px">닫기</button></div>
-            <div style="display:flex;gap:6px;align-items:center"><input id="pickQ" type="text" placeholder="이름 또는 번호 (피카츄, gengar, 94)" style="flex:1;min-width:0"><label class="muted" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="pickShiny">이로치</label></div>
-            <div id="pickRes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px;margin-top:8px;max-height:300px;overflow:auto"></div>
-          </div>
           <details style="margin-top:12px"><summary class="muted" style="cursor:pointer">PNG 파일로 직접 넣기</summary>
             <p class="muted">파일 이름이 <code>번호.png</code> 이거나 역할 이름(<code>read.png</code>, <code>trainer.png</code>)이면 자동으로 짝지어져요.</p>
             <div style="display:flex;gap:6px"><label class="filebtn">파일 선택<input type="file" id="packFiles" accept="image/png,image/gif,image/webp" multiple></label><label class="filebtn">폴더 선택<input type="file" id="packDir" webkitdirectory multiple></label></div>
@@ -145,7 +155,10 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
           <div style="display:flex;gap:6px;margin-top:10px"><button id="packReset" style="flex:1">오리지널 몬스터로 바꾸기</button></div>
           <p class="muted" id="packState">고른 포켓몬은 이 브라우저에만 저장돼요. 개인용으로만 쓰세요.</p>
         </div>
-        <div class="tab log" id="tab-log"></div>
+        <div class="tab" id="tab-log">
+          <div class="log" id="logList"></div>
+          <button id="logAll" style="width:100%;margin-top:10px">전체 기록 보기</button>
+        </div>
         <div class="tab" id="tab-set">
           <div class="sect">연결 상태</div>
           <p style="margin:0 0 14px;font-size:13.5px" id="liveState">로컬 서버에 연결되지 않았어요.</p>
@@ -157,15 +170,11 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
             <div><span>서브에이전트</span><i>→</i><span>조사 포켓몬</span></div>
             <div><span>승인 요청</span><i>→</i><span>상단 알림</span></div>
           </div>
-          <div class="sect">기본 Command</div>
-<pre style="margin:0">npm install     # 처음 한 번 (스프라이트 자동 다운로드)
-npm run hooks   # 처음 한 번 (Claude Code 연결)
-npm start       # 매번 → http://127.0.0.1:4321
-npm run doctor  # 안 될 때 진단</pre>
         </div>
       </section>
     </div>
   </div>
+  <div class="modal" id="modal" hidden><div class="mbox" role="dialog" aria-modal="true"><div class="mhead"><b id="mTitle"></b><button id="mClose" title="닫기">✕</button></div><div id="mExtra"></div><div class="mbody" id="mBody"></div></div></div>
   <footer>기본 몬스터·트레이너·사무실 그림은 이 프로젝트용 오리지널 픽셀 아트입니다. 포켓몬 스프라이트는 내려받은 앱에서 사용자가 직접 받아 이 PC에서만 씁니다.</footer>
 </div>
 
@@ -468,18 +477,20 @@ function handleEvent(ev){
   const act=resolveAction(ev.tool,ev);const role=act.role;
   switch(ev.kind){
     case 'session_start':break;
-    case 'prompt':toSeat(tr);tr.prompt=ev.detail||'';tr.state='think';tr.bubble=`"${(ev.detail||'').slice(0,16)}"`;setTimeout(()=>{if(tr.bubble&&tr.bubble.startsWith('"'))tr.bubble='…';},2500/speed);
+    case 'prompt':toSeat(tr);tr.prompt=ev.full||ev.detail||'';tr.state='think';tr.bubble=`"${(ev.detail||'').slice(0,16)}"`;setTimeout(()=>{if(tr.bubble&&tr.bubble.startsWith('"'))tr.bubble='…';},2500/speed);
 
-      ticker(town,`${tname(tr)}: "${ev.detail||'새 지시'}"`,tr);log('prompt',`${town.name}·${tr.no} ${ev.detail||''}`);break;
+      ticker(town,`${tname(tr)}: "${tr.prompt||'새 지시'}"`,tr);log('prompt',`${town.name}·${tr.no} ${tr.prompt}`);break;
     case 'tool_start':
       if(role==='plan'){toSeat(tr);if(Array.isArray(ev.todos))town.todos=ev.todos.map(t=>({text:t.text,s:t.status==='completed'?'done':t.status==='in_progress'?'doing':''}));
         tr.state='pin';tr.bubble=actText(act);setTimeout(()=>{tr.bubble=null;tr.state='think';},1400/speed);ticker(town,`${tname(tr)}의 「${actText(act)}」${act.tool==='TodoWrite'||/^Task/.test(act.tool)?` — 할 일 ${town.todos.length}개`:''}`,tr);log('tool_start',`${town.name}·${tr.no} ${act.tool}`);renderSide();break;}
       if(role==='ask'){toSeat(tr);tr.state='wait';tr.bubble='?';showAlert(town,tr,'Claude가 질문했어요. 터미널에서 답해 주세요.');ticker(town,`${tname(tr)}의 「AskUserQuestion · 질문」! 터미널에서 답을 기다려요`,tr);log('notify',`${town.name}·${tr.no} AskUserQuestion`);break;}
       if(role==='sub'){spawnSub(town,tr,ev);break;}
       newJob(town,tr,ev,act);break;
-    case 'tool_end':{if(act.role==='ask'&&tr.state==='wait'){tr.state='think';tr.bubble='…';clearAlert(tr);}const j=findJob(town,tr,ev);if(j){j.ok=ev.ok!==false;j.endAt=now.t;}break;}
+    case 'tool_end':{if(act.role==='ask'&&tr.state==='wait'){tr.state='think';tr.bubble='…';clearAlert(tr);}const j=findJob(town,tr,ev);if(j){j.ok=ev.ok!==false;j.endAt=now.t;if(j.role==='test')town.lastTest={ok:j.ok,label:j.label,at:now.t};}break;}
     case 'subagent_end':endSub(town,tr);break;
-    case 'notify':toSeat(tr);tr.state='wait';tr.bubble='!';showAlert(town,tr,ev.detail||'입력을 기다려요');ticker(town,`${tname(tr)}이(가) 부르고 있다! ${ev.detail||''}`,tr);log('notify',`${town.name}·${tr.no} ${ev.detail||''}`);break;
+    case 'notify':{const msg=ev.full||ev.detail||'';toSeat(tr);tr.state='wait';tr.bubble='!';showAlert(town,tr,msg||'입력을 기다려요');ticker(town,`${tname(tr)}이(가) 부르고 있다! ${msg}`,tr);log('notify',`${town.name}·${tr.no} ${msg}`);break;}
+    case 'say':{tr.said=tr.said||new Set();if(tr.said.size>300)tr.said.clear();
+      (ev.texts||[]).forEach(t=>{if(!t||tr.said.has(t))return;tr.said.add(t);log('claude',`${town.name}·${tr.no} ${t}`);ticker(town,`Claude(${tname(tr)}): ${t}`,tr);});return;}
     case 'stop':tr.state='idle';tr.bubble=null;clearAlert(tr);log('stop',`${town.name}·${tr.no} Stop`);toLounge(town,tr);
       ticker(town,`${tname(tr)}: 작업 끝! 휴게실에서 다음 지시를 기다려요 (내 차례)`,tr);break;
     case 'session_end':clearAlert(tr);tr.state='leave';tr.bubble='퇴근!';walk(tr,GATE.x,GATE.y).then(()=>{town.trainers.delete(tr.id);renderTowns();renderSide();});log('session',`${town.name} · 세션 ${tr.no} 종료`);break;
@@ -492,11 +503,11 @@ function releaseMon(town,tr,mo){mo.owner=tr;const p=besideTrainer(town,tr);mo.x=
   town.fx.push({type:'ball',x0:tr.x+tr.face*4,y0:tr.y-16,x1:p.x,y1:p.y-6,t:0,dur:360});}
 function recallMon(town,mo){const tr=mo.owner;if(!tr||!town.trainers.has(tr.id)){mo.state='vanish';mo.t=350;town.fx.push({type:'poof',x:mo.x,y:mo.y-10,t:0});return;}
   mo.state='return';const p=besideTrainer(town,tr);goTo(mo,p.x,p.y);}
-function newJob(town,tr,ev,act){const role=act.role;const job={id:ev.id||`${ev.session}:${ev.tool}:${now.t}:${Math.random()}`,tool:act.tool,rawTool:ev.tool,label:act.label,key:`${ev.session}:${ev.tool}`,role,detail:ev.detail||ev.tool,tr,ok:undefined,start:now.t,endAt:null,mon:null};
+function newJob(town,tr,ev,act){const role=act.role;const job={id:ev.id||`${ev.session}:${ev.tool}:${now.t}:${Math.random()}`,tool:act.tool,rawTool:ev.tool,label:act.label,key:`${ev.session}:${ev.tool}`,role,detail:ev.detail||ev.tool,full:ev.full||ev.cmd||ev.detail||ev.tool,tr,ok:undefined,start:now.t,endAt:null,mon:null};
   town.jobs.push(job);tr.state='think';town.restMode=false;
   const mon=mkMon(role,false,{x:tr.x,y:tr.y});town.mons.push(mon);releaseMon(town,tr,mon);
   mon.job=job;job.mon=mon;
-  ticker(town,`${tname(tr)}: 가라, ${nameOf(role)}! — 「${actText(act)}」 ${job.detail} (${HAB[role].name})`,tr);log('tool_start',`${town.name}·${tr.no} ${ev.tool} (${act.label}): ${job.detail}`);}
+  ticker(town,`${tname(tr)}: 가라, ${nameOf(role)}! — 「${actText(act)}」 ${job.detail} (${HAB[role].name})`,tr);log('tool_start',`${town.name}·${tr.no} ${ev.tool} (${act.label}): ${job.full}`);}
 function findJob(town,tr,ev){let j=ev.id&&town.jobs.find(x=>x.id===ev.id&&x.ok===undefined);if(!j)j=town.jobs.find(x=>x.key===`${ev.session}:${ev.tool}`&&x.ok===undefined);if(!j)j=town.jobs.find(x=>x.rawTool===ev.tool&&x.ok===undefined);return j;}
 function spawnSub(town,tr,ev){const mo=mkMon('sub',true,{x:tr.x,y:tr.y});mo.subOf=tr.id;mo.job={detail:ev.detail||'조사'};mo.afterAppear='subwork';town.mons.push(mo);releaseMon(town,tr,mo);
   ticker(town,`${tname(tr)}의 「Agent · 서브에이전트 출동」! ${josa(nameOf('sub'),'이/가')} 조사하러 나갔다: ${ev.detail||''}`,tr);log('sub',`${town.name}·${tr.no} Task ${ev.detail||''}`);dexStats.sub.count++;dexStats.sub.last=ev.detail||'';renderDex();}
@@ -509,6 +520,7 @@ function grow(town,job){if(job.role==='test')town.lastTest={ok:true,label:job.la
 
 // monster brain
 function updateMon(town,mo,dt){const h=HAB[mo.role];mo.t-=dt;
+  if(mo.back){if(['work','cheer','sad','nap'].includes(mo.state)){if(moveAlong(mo,.1*dt))mo.back=false;}else mo.back=false;}
   switch(mo.state){
     case 'wander':mo.idle+=dt;if(mo.pause>0){mo.pause-=dt;break;}
       if(moveAlong(mo,.024*dt)){mo.pause=rand(900,3800);
@@ -549,27 +561,34 @@ function renderTowns(){const el=$('towns');el.innerHTML='';towns.forEach((t,name
 let selected=null;
 const ROOMCOL={research:'#6b8ad9',dev:'#3a9ad9',term:'#7a7a8a',plan:'#e8a030'};
 const fmtSec=ms=>{const s=Math.max(0,Math.floor(ms/1000));return s<60?s+'s':Math.floor(s/60)+'m'+String(s%60).padStart(2,'0');};
-// 잘린 글은 작은 ▾ 버튼으로 펼쳐 보기 (1초마다 다시 그려도 펼침 상태 유지)
-const expanded=new WeakSet();
+// 가운데 팝업: 더보기 · 활동 기록 · 포켓몬 도감
+function openModal(title,content,{cls='',extra=null}={}){const m=$('modal');m.className='modal '+cls;$('mTitle').textContent=title;
+  const x=$('mExtra');x.innerHTML='';if(extra)x.appendChild(extra);const b=$('mBody');b.innerHTML='';b.scrollTop=0;
+  if(typeof content==='string'){const pre=document.createElement('pre');pre.className='mtext';pre.textContent=content;b.appendChild(pre);}else b.appendChild(content);
+  m.hidden=false;document.body.style.overflow='hidden';}
+function closeModal(){$('modal').hidden=true;document.body.style.overflow='';pickRole=null;}
+$('mClose').onclick=closeModal;$('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modal').hidden)closeModal();});
+// 잘린 글은 오른쪽 작은 ▾ 버튼 → 가운데 팝업으로 전체 보기
 const moreBtn=()=>{const b=document.createElement('button');b.className='more';b.hidden=true;b.title='더보기';b.textContent='▾';return b;};
-function fitMore(d,key){const btn=d.querySelector('.more');if(!btn||!key)return;
-  const over=[...d.querySelectorAll('.txt > div')].some(x=>x.scrollWidth>x.clientWidth+1);
-  const set=()=>{const o=expanded.has(key);d.classList.toggle('open',o);btn.hidden=!(over||o);btn.textContent=o?'▴':'▾';btn.title=o?'접기':'더보기';};
-  btn.onclick=e=>{e.stopPropagation();expanded.has(key)?expanded.delete(key):expanded.add(key);set();};set();}
+function fitMore(d,title,body,raw){const btn=d.querySelector('.more');if(!btn)return;
+  const shown=[...d.querySelectorAll('.txt > div')];const over=shown.some(x=>x.scrollWidth>x.clientWidth+1);
+  const longer=raw&&!shown.some(x=>x.textContent.includes(raw));btn.hidden=!(over||longer);
+  btn.onclick=e=>{e.stopPropagation();openModal(title,body||shown.map(x=>x.textContent).join('\n'));};}
 function renderSide(){renderWork();renderSessions();}
 function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)return;
   const jobs=t?t.jobs:[];const subs=t?t.mons.filter(m=>m.role==='sub'&&m.state==='subwork'):[];
-  $('workSum').textContent=t?`${t.trainers.size}세션 · ${jobs.length+subs.length}건`:'';
-  if(!jobs.length&&!subs.length){el.innerHTML=`<div class="empty">지금 일하는 포켓몬이 없어요<br><span style="font-size:12px">Claude가 파일을 읽거나 고치거나 명령을 실행하면<br>담당 포켓몬이 나타나 여기에 표시돼요.</span></div>`;return;}
+  $('workSum').textContent=t?`${t.trainers.size}세션/${jobs.length+subs.length}작업`:'';
+  if(!jobs.length&&!subs.length){el.innerHTML=`<div class="empty">지금 작업 중인 포켓몬이 없어요.<br><span style="font-size:12px">(Claude Code가 동작할 경우<br>자동으로 포켓몬이 일을 시작해요.)</span></div>`;return;}
   el.innerHTML='';
-  const row=(img,a,b,room,since,tr,state,key)=>{const d=document.createElement('div');d.className='wrow';
+  const row=(img,a,b,room,since,tr,state,full)=>{const d=document.createElement('div');d.className='wrow';
     const c=document.createElement('canvas');c.width=48;c.height=48;thumb(c,img);d.appendChild(c);
     const m=document.createElement('div');m.className='txt';m.innerHTML=`<div class="a"></div><div class="b"></div>`;m.querySelector('.a').textContent=a;
     const bb=m.querySelector('.b');if(room)bb.innerHTML=`<span class="room" style="background:${ROOMCOL[room]||'#666'}">${ROOMS[room].ko}</span>`;bb.append(b);d.appendChild(m);
-    const tm=document.createElement('div');tm.className='tm';tm.innerHTML=`${fmtSec(now.t-since)}<br><span style="color:var(--quiet)">${tr?'S'+tr.no:''}</span>`;if(state)tm.title=state;d.appendChild(moreBtn());d.appendChild(tm);el.appendChild(d);fitMore(d,key);};
+    const tm=document.createElement('div');tm.className='tm';tm.innerHTML=`${fmtSec(now.t-since)}<br><span style="color:var(--quiet)">${tr?'S'+tr.no:''}</span>`;if(state)tm.title=state;d.appendChild(moreBtn());d.appendChild(tm);el.appendChild(d);fitMore(d,a,full?`${state?state+'\n\n':''}${full}`:'',full);};
   jobs.forEach(j=>{const st=j.ok===undefined?(j.mon&&j.mon.state==='work'?'일하는 중':'가는 중'):(j.ok?'완료':'실패');
-    row(monImg(j.role,0),`${nameOf(j.role)} · ${j.tool} ${j.label}`,` ${st}${j.detail&&j.detail!==j.rawTool?' — '+j.detail:''}`,HAB[j.role].room,j.start,j.tr,st,j);});
-  subs.forEach(mo=>{const tr=t.trainers.get(mo.subOf);row(monImg('sub',0),`${nameOf('sub')} · 서브에이전트`,` 조사 중 — ${mo.job.detail}`,null,mo.born||now.t,tr,undefined,mo);});}
+    row(monImg(j.role,0),`${nameOf(j.role)} · ${j.tool} ${j.label}`,` ${st}${j.detail&&j.detail!==j.rawTool?' — '+j.detail:''}`,HAB[j.role].room,j.start,j.tr,st,j.full||j.detail);});
+  subs.forEach(mo=>{const tr=t.trainers.get(mo.subOf);row(monImg('sub',0),`${nameOf('sub')} · 서브에이전트`,` 조사 중 — ${mo.job.detail}`,null,mo.born||now.t,tr,'조사 중',mo.job.full||mo.job.detail);});}
 function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!el)return;
   if(!t||!t.trainers.size){el.innerHTML=`<div class="empty">${LIVE?'Claude Code를 실행하면 트레이너가 출근해요.':'세션이 없어요.'}</div>`;return;}
   el.innerHTML='';const g=t.growth;
@@ -577,7 +596,7 @@ function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!e
     const st=tr.lounge&&tr.state==='idle'?'휴게실 · 내 차례':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'⚠ 승인·답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
     c.innerHTML=`<div class="sw" style="width:40px;height:40px;background:${HATS[tr.color][0]}">S${tr.no}</div><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${jobs?jobs+'건':''}</div>`;
-    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,tr);});
+    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
   if(t.todos.length){const d=document.createElement('div');d.style.cssText='margin-top:8px;font-size:13px;line-height:1.7';d.innerHTML='<div class="muted" style="font-size:12px">화이트보드 할 일</div>';
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
 setInterval(()=>{if(!paused)renderWork();},1000);
@@ -585,10 +604,15 @@ function thumb(c,img){const x=c.getContext('2d');x.imageSmoothingEnabled=false;x
 function buildDex(){}
 function renderDex(){buildPack();}
 
-function select(k){selected=k;renderDex();const s=dexStats[k];if(DEF[k]){$('info').innerHTML=`<b></b> · ${HAB[k].name} · ${DEF[k].tool} 담당 · 일한 횟수 ${s.count}`;$('info').querySelector('b').textContent=nameOf(k);}}
+function select(k){selected=k;renderDex();}
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));});
-const logEl=$('tab-log');const clock=()=>new Date().toTimeString().slice(0,8);
-function log(kind,text,cls){const d=document.createElement('div');d.innerHTML=`<span class="ts">${clock()}</span><span class="k ${cls||kind}">${kind}</span><span></span>`;d.lastChild.textContent=text;logEl.prepend(d);while(logEl.children.length>100)logEl.lastChild.remove();}
+const clock=()=>new Date().toTimeString().slice(0,8);const LOGS=[];const LOG_SHOW=12;
+const logRow=(e,full)=>{const d=document.createElement('div');d.innerHTML=`<span class="ts">${e.ts}</span><span class="k ${e.cls}">${e.kind}</span><span class="tx"></span>`;d.lastChild.textContent=e.text;
+  if(!full)d.onclick=()=>openModal(`${e.kind} · ${e.ts}`,e.text);return d;};
+function log(kind,text,cls){const e={ts:clock(),kind,text:String(text||''),cls:cls||kind};LOGS.unshift(e);if(LOGS.length>500)LOGS.pop();
+  const el=$('logList');el.prepend(logRow(e));while(el.children.length>LOG_SHOW)el.lastChild.remove();$('logAll').textContent=`전체 기록 보기 (${LOGS.length})`;}
+$('logAll').onclick=()=>{const box=document.createElement('div');box.className='log';LOGS.forEach(e=>box.appendChild(logRow(e,true)));
+  if(!LOGS.length)box.innerHTML='<p class="muted">아직 기록이 없어요.</p>';openModal('활동 기록',box);};
 
 // alerts
 let alertFor=null;const waiters=new Map();
@@ -621,18 +645,23 @@ function buildPack(){const el=$('teamList');if(!el)return;el.innerHTML='';[...RO
   const b=document.createElement('button');b.textContent='변경';const off=SRC.mode==='none'||r==='trainer';b.disabled=off;if(off){b.style.opacity=.4;b.title=r==='trainer'?'트레이너는 PNG 파일로 넣어 주세요':'내려받은 앱(npm start)에서만 바꿀 수 있어요';}
   b.onclick=e=>{e.stopPropagation();openPicker(r);};row.appendChild(b);row.onclick=()=>{if(r!=='trainer')select(r);};el.appendChild(row);});}
 let pickRole=null;
-function openPicker(r){pickRole=r;$('picker').style.display='block';$('pickTitle').textContent=`${LABEL[r]} 담당 포켓몬 고르기`;$('pickQ').value='';searchPick();$('pickQ').focus();}
-$('pickClose').onclick=()=>{$('picker').style.display='none';pickRole=null;};
+function openPicker(r){pickRole=r;const bar=document.createElement('div');bar.className='dexbar';
+  bar.innerHTML=`<input id="pickQ" type="text" placeholder="이름 또는 번호 (피카츄, gengar, 94)"><label class="muted" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="pickShiny">이로치</label><span class="muted" id="pickCount"></span>`;
+  const grid=document.createElement('div');grid.className='dexgrid';grid.id='pickRes';
+  openModal(`포켓몬 도감 · ${LABEL[r]} 담당 고르기`,grid,{cls:'dex',extra:bar});pickRole=r;
+  $('pickQ').oninput=searchPick;$('pickShiny').onchange=searchPick;searchPick();$('pickQ').focus();}
 function searchPick(){const q=$('pickQ').value.trim().toLowerCase();const list=SRC.names||[];const sh=$('pickShiny').checked;
-  const res=(q?list.filter(e=>String(e.id)===q||e.ko.includes(q)||e.en.toLowerCase().includes(q)):list).slice(0,60);$('pickRes').innerHTML='';
-  res.forEach(e=>{const b=document.createElement('button');b.className='pk';b.style.cssText='display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;font-size:11.5px';
-    const im=new Image();im.loading='lazy';im.width=56;im.height=56;im.style.imageRendering='pixelated';if(SRC.mode==='remote')im.crossOrigin='anonymous';im.src=spriteUrl(e.id,sh);im.alt=e.ko||e.en;
-    const n=document.createElement('span');n.textContent=e.ko||e.en;const d=document.createElement('span');d.style.color='var(--quiet)';d.textContent='#'+e.id;b.append(im,n,d);b.onclick=()=>choose(pickRole,e,sh);$('pickRes').appendChild(b);});
-  if(!res.length)$('pickRes').innerHTML='<p class="muted">찾는 포켓몬이 없어요.</p>';}
-$('pickQ').oninput=searchPick;$('pickShiny').onchange=searchPick;
+  const res=q?list.filter(e=>String(e.id)===q.replace(/^#?0*/,'')||e.ko.includes(q)||e.en.toLowerCase().includes(q)):list;const g=$('pickRes');g.innerHTML='';
+  $('pickCount').textContent=q?`${res.length} / ${list.length}종`:`전체 ${list.length}종`;
+  const frag=document.createDocumentFragment();
+  res.forEach(e=>{const b=document.createElement('button');
+    const im=new Image();im.loading='lazy';im.decoding='async';im.width=64;im.height=64;if(SRC.mode==='remote')im.crossOrigin='anonymous';im.src=spriteUrl(e.id,sh);im.alt=e.ko||e.en;
+    const no=document.createElement('span');no.className='no';no.textContent='No.'+String(e.id).padStart(4,'0');const n=document.createElement('span');n.textContent=e.ko||e.en;
+    b.append(im,no,n);b.onclick=()=>choose(pickRole,e,sh);frag.appendChild(b);});
+  g.appendChild(frag);if(!res.length)g.innerHTML='<p class="muted">찾는 포켓몬이 없어요.</p>';}
 function toDataUrl(src){return new Promise((res,rej)=>{const im=new Image();if(SRC.mode==='remote')im.crossOrigin='anonymous';im.onload=()=>{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);try{res(c.toDataURL('image/png'));}catch(e){rej(e);}};im.onerror=()=>rej(new Error('이미지를 못 불러왔어요'));im.src=src;});}
 async function choose(r,e,sh){if(!r)return;try{const url=await toDataUrl(spriteUrl(e.id,sh));await loadDataUrl(r,url);cfg[r]={dex:e.id,name:(e.ko||e.en)+(sh?'(이로치)':'')};
-  savePack();afterPack();$('packState').textContent=`${LABEL[r]} 담당이 ${cfg[r].name}(으)로 바뀌었어요.`;log('pack',`${LABEL[r]} → ${cfg[r].name} #${e.id}`,'stop');$('picker').style.display='none';}catch(err){$('packState').textContent='불러오기 실패: '+err.message;}}
+  savePack();afterPack();$('packState').textContent=`${LABEL[r]} 담당이 ${cfg[r].name}(으)로 바뀌었어요.`;log('pack',`${LABEL[r]} → ${cfg[r].name} #${e.id}`,'stop');closeModal();}catch(err){$('packState').textContent='불러오기 실패: '+err.message;}}
 async function applyDefaults(){if(SRC.mode==='none'||store.get('pokeoffice.pack'))return;let n=0;
   for(const r of ROLES){if(custom[r])continue;try{const url=await toDataUrl(spriteUrl(DEF[r].dex,false));if(await loadDataUrl(r,url)){const e=(SRC.names||[]).find(x=>x.id===DEF[r].dex);cfg[r]={dex:DEF[r].dex,name:e?(e.ko||e.en):DEF[r].suggest};n++;}}catch{}}
   if(n){savePack();afterPack();renderSide();$('packState').textContent=`추천 포켓몬 ${n}마리로 시작했어요. 역할 옆 변경으로 바꿀 수 있어요.`;}}
@@ -655,7 +684,8 @@ async function demoSession(town,sid,script){
   while(true){if(!demoOn||LIVE){await sleep(800);continue;}await script({E,tool,par,sid,town});await sleep(rand(9000,15000));}}
 function startDemo(){demoOn=true;
 demoSession('my-app','sess-a1',async({E,tool,par,sid})=>{
-  E({kind:'prompt',detail:'로그인 버그 고쳐줘'});await sleep(1600);
+  E({kind:'prompt',detail:'로그인 버그 고쳐줘',full:'로그인 버그 고쳐줘. 비밀번호가 맞는데도 가끔 로그인이 안 되고 첫 화면으로 돌아가는 문제가 있어. 원인 찾아서 고치고 테스트까지 통과시켜줘.'});await sleep(1200);
+  E({kind:'say',texts:['로그인 처리 코드부터 확인할게요. handleLogin이 어디서 쓰이는지 찾고, 최근 변경 이력도 같이 볼게요.']});await sleep(400);
   E({kind:'tool_start',tool:'TodoWrite',todos:[{text:'원인 찾기',status:'in_progress'},{text:'login.ts 수정',status:'pending'},{text:'테스트 통과',status:'pending'}]});await sleep(1400);
   await par(['Bash','rg "handleLogin" src',2600],['Read','src/auth/login.ts',3000],['Bash','git log -5 --oneline',2200]);
   await tool('Edit','login.ts',3200);
@@ -684,8 +714,9 @@ function connectLive(){if(!SRC.server)return;const es=new EventSource('stream');
 
 // ───────── render
 const px=n=>Math.round(n)*S;let TS=1;
-function drawImg(img,x,y,face=1,{cu=false,scale=1,alpha=1}={}){let w,h;if(cu){const k=Math.min(.5,26/img.height);w=img.width*k*S*scale;h=img.height*k*S*scale;}else{w=18*S*SP*scale;h=18*S*SP*scale;}
-  ctx.save();ctx.globalAlpha=alpha;ctx.translate(px(x),px(y));if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,-h+S*3,w,h);ctx.restore();return h/S;}
+function drawImg(img,x,y,face=1,{cu=false,scale=1,alpha=1,rot=0}={}){let w,h;if(cu){const k=Math.min(.5,26/img.height);w=img.width*k*S*scale;h=img.height*k*S*scale;}else{w=18*S*SP*scale;h=18*S*SP*scale;}
+  ctx.save();ctx.globalAlpha=alpha;if(rot){ctx.translate(px(x),px(y)-h+S*3);ctx.rotate(rot);if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,0,w,h);}else{ctx.translate(px(x),px(y));if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,-h+S*3,w,h);}ctx.restore();return h/S;}
+function struggle(x,y,h){ctx.fillStyle='#fff';const k=Math.floor(now.t/90)%2;for(const sd of[-1,1]){ctx.fillRect(px(x+sd*(11+k)),px(y-h*.6),2*S,S);ctx.fillRect(px(x+sd*(12-k)),px(y-h*.6+3),2*S,S);}}
 function shadow(x,y,r=8){ctx.fillStyle='rgba(60,90,30,.28)';ctx.beginPath();ctx.ellipse(px(x),px(y)+S,r*S,2.2*S,0,0,7);ctx.fill();}
 function bubble(x,y,text,col='#fff',off=30){ctx.font=`${7*S*TS}px 'DotGothic16','Apple SD Gothic Neo',sans-serif`;const t=text.length>14?text.slice(0,13)+'…':text;
   const w=Math.max(ctx.measureText(t).width+8*S*TS,12*S*TS),h=12*S*TS;let bx=px(x)-w/2,by=px(y)-h-off*S;bx=Math.max(2*S,Math.min(cv.width-w-2*S,bx));
@@ -694,17 +725,24 @@ function bubble(x,y,text,col='#fff',off=30){ctx.font=`${7*S*TS}px 'DotGothic16',
 function roundRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);ctx.fill();}
 function drawBoards(town){
   // 테스트실 상태판: 마지막 테스트/린트/빌드 결과
-  {const x=24.4*T,y=0.25*T+4,lt=town.lastTest,busy=town.jobs.some(j=>j.role==='test'&&j.ok===undefined);
-   const col=busy?(Math.floor(now.t/300)%2?'#e8d870':'#8a7a30'):lt?(lt.ok?'#3fbf66':'#e85a5a'):'#5a6270';
-   ctx.fillStyle=col;ctx.fillRect(px(x),px(y),14*S,14*S);ctx.fillStyle='#fff';ctx.font=`${9*S}px 'Press Start 2P'`;ctx.textBaseline='alphabetic';ctx.fillText(busy?'…':lt?(lt.ok?'✓':'✗'):'-',px(x+2),px(y+12));
-   ctx.fillStyle='#cfd8e2';ctx.font=`${4*S}px 'Press Start 2P'`;ctx.fillText('TEST',px(x+18),px(y+6));
-   ctx.font=`${5.5*S}px 'DotGothic16',sans-serif`;ctx.fillStyle=col==='#5a6270'?'#8a94a2':col;ctx.fillText(busy?'검사 중…':lt?`${lt.label} ${lt.ok?'통과':'실패'}`:'아직 없음',px(x+18),px(y+15));}
+  {const lt=town.lastTest,bj=town.jobs.find(j=>j.role==='test'&&j.ok===undefined);const nm=l=>l==='테스트 실행'?'테스트':l;
+   const bx=24.2*T+5,by=11.5,sz=10;
+   const col=bj?'#c8a83a':lt?(lt.ok?'#3fbf66':'#e85a5a'):'#3a424c';ctx.fillStyle=col;ctx.fillRect(px(bx),px(by),sz*S,sz*S);
+   ctx.strokeStyle='#fff';ctx.lineWidth=1.6*S;ctx.lineCap='square';ctx.beginPath();
+   if(bj){const k=Math.floor(now.t/250)%4;ctx.fillStyle='#fff';for(let i=0;i<3;i++)if(i<k)ctx.fillRect(px(bx+2+i*2.6),px(by+4.5),1.4*S,1.4*S);}
+   else if(lt&&lt.ok){ctx.moveTo(px(bx+2.4),px(by+5.2));ctx.lineTo(px(bx+4.3),px(by+7.1));ctx.lineTo(px(bx+7.7),px(by+3));ctx.stroke();}
+   else if(lt){ctx.moveTo(px(bx+3),px(by+3));ctx.lineTo(px(bx+7),px(by+7));ctx.moveTo(px(bx+7),px(by+3));ctx.lineTo(px(bx+3),px(by+7));ctx.stroke();}
+   ctx.textBaseline='alphabetic';ctx.fillStyle='#8a96a4';ctx.font=`${3.5*S}px 'Press Start 2P'`;ctx.fillText('TEST',px(bx+14),px(by+3.6));
+   const msg=bj?`${nm(bj.label)} 진행 중`:lt?`${nm(lt.label)} ${lt.ok?'완료':'실패'}`:'';
+   if(msg){ctx.font=`bold ${5*S}px 'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif`;ctx.fillStyle=bj?'#e8d870':lt.ok?'#7cf59a':'#ff8a8a';ctx.fillText(msg,px(bx+14),px(by+10));}}
   // 의뢰 보드: 진행 중인 의뢰 카드 (세션 색 + 역할 아이템)
-  const bx=1.6*T+4,by=12.3*T+4;ctx.fillStyle='#3a3a6a';ctx.font=`${3.4*S}px 'Press Start 2P'`;ctx.textBaseline='alphabetic';ctx.fillText('TASKS',px(bx),px(by+3));
-  town.jobs.slice(0,10).forEach((j,i)=>{const cx=bx+(i%5)*10,cy=by+5+Math.floor(i/5)*7;ctx.fillStyle=j.ok===undefined?'#fff6c8':'#d0f0c0';ctx.fillRect(px(cx),px(cy),8*S,6*S);ctx.fillStyle=HATS[j.tr.color][0];ctx.fillRect(px(cx),px(cy),8*S,S);ctx.drawImage(ITEM[j.role],px(cx+1.5),px(cy+1.5),5*S,4*S);});
+  const board=(x,y,w,h,fn)=>{ctx.save();ctx.beginPath();ctx.rect(px(x+2),px(y+2),(w-4)*S,(h-4)*S);ctx.clip();fn();ctx.restore();};
+  // 의뢰 보드: 진행 중인 작업 카드 (세션 색 + 역할 아이템). 왼쪽 위는 '기획실' 이름표 자리라 비워 둬요
+  board(1.6*T,12.3*T,4*T,1.4*T,()=>{const x0=1.6*T,y0=12.3*T;ctx.fillStyle='#3a3a6a';ctx.font=`${3.4*S}px 'Press Start 2P'`;ctx.textBaseline='alphabetic';ctx.textAlign='right';ctx.fillText('TASKS',px(x0+4*T-4),px(y0+6.5));ctx.textAlign='left';
+    town.jobs.slice(0,10).forEach((j,i)=>{const cx=x0+5+(i%5)*11,cy=y0+8.5+Math.floor(i/5)*6.5;ctx.fillStyle=j.ok===undefined?'#fff6c8':'#d0f0c0';ctx.fillRect(px(cx),px(cy),9*S,5.5*S);ctx.fillStyle=HATS[j.tr.color][0];ctx.fillRect(px(cx),px(cy),9*S,S);ctx.drawImage(ITEM[j.role],px(cx+2),px(cy+1.5),5*S,4*S);});});
   // 할 일 보드
-  const tx=6*T+4,ty=12.3*T+4;ctx.fillStyle='#3a3a6a';ctx.fillText('TODO',px(tx),px(ty+3));
-  town.todos.slice(0,4).forEach((t,i)=>{const y=ty+7+i*3.6;ctx.fillStyle=t.s==='done'?'#3fbf66':t.s==='doing'?'#e89a20':'#a0a0b8';ctx.fillRect(px(tx),px(y-2),2*S,2*S);ctx.fillStyle='#8a8aa0';ctx.fillRect(px(tx+4),px(y-1.5),Math.min(30,6+t.text.length*2.4)*S,S);});}
+  board(6*T,12.3*T,2.8*T,1.4*T,()=>{const tx=6*T+4,ty=12.3*T+4;ctx.fillStyle='#3a3a6a';ctx.font=`${3.4*S}px 'Press Start 2P'`;ctx.textBaseline='alphabetic';ctx.fillText('TODO',px(tx),px(ty+3));
+    town.todos.slice(0,4).forEach((t,i)=>{const y=ty+7+i*3.3;ctx.fillStyle=t.s==='done'?'#3fbf66':t.s==='doing'?'#e89a20':'#a0a0b8';ctx.fillRect(px(tx),px(y-2),2*S,2*S);ctx.fillStyle='#8a8aa0';ctx.fillRect(px(tx+4),px(y-1.5),Math.min(30,6+t.text.length*2.4)*S,S);});});}
 function drawGrowth(g){
   // 복도 화분
   const spots=[[4,9.1],[8,9.1],[11,9.1],[19.5,9.1],[23,9.1],[28,9.1]];
@@ -720,22 +758,24 @@ function moveFx(r,o,t){const x=o.x,y=o.y;const ph=t/120;
   case'mcp':ctx.strokeStyle='#ffcf3a';ctx.lineWidth=S;ctx.beginPath();ctx.moveTo(px(x),px(y-24));ctx.lineTo(px(x+4),px(y-28));ctx.lineTo(px(x+1),px(y-29));ctx.lineTo(px(x+5),px(y-34));ctx.stroke();break;}}
 // dialog strip
 const dlg={text:'',shown:0,color:null};function dlgSet(text,tr){dlg.text=text||'';dlg.shown=0;dlgShownPrev=-1;dlg.color=tr?HATS[tr.color][0]:null;}
-let dlgShownPrev=-1;function dialog(dt){dlg.shown=Math.min(dlg.text.length,dlg.shown+dt/22);const n=Math.floor(dlg.shown);if(n!==dlgShownPrev){dlgShownPrev=n;$('dlgText').textContent=dlg.text.slice(0,n);$('dlgDot').style.background=dlg.color||'transparent';}}
+let dlgShownPrev=-1;function dialog(dt){dlg.shown=Math.min(dlg.text.length,dlg.shown+dt/22);if(dlg.shown>=90)dlg.shown=dlg.text.length;const n=Math.floor(dlg.shown);if(n!==dlgShownPrev){dlgShownPrev=n;const el=$('dlgText');el.textContent=dlg.text.slice(0,n);$('dlgDot').style.background=dlg.color||'transparent';
+  if(n>=dlg.text.length)$('dlgMore').hidden=!(el.scrollWidth>el.clientWidth+1);else $('dlgMore').hidden=true;}}
+$('dlgMore').onclick=()=>openModal('대화',dlg.text);
 let last=performance.now();
 function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const raw=Math.max(0,Math.min(50,ts-last));last=ts;const dt=paused?0:raw*speed;now.t+=dt;
   const due=timers.filter(x=>x.at<=now.t);if(due.length){for(const d of due)timers.splice(timers.indexOf(d),1);due.forEach(d=>d.res());}
-  towns.forEach(town=>{town.mons.forEach(mo=>updateMon(town,mo,dt));town.mons=town.mons.filter(m=>!m.dead);
-    town.trainers.forEach(tr=>{if(tr.path.length){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
+  towns.forEach(town=>{town.mons.forEach(mo=>{if(!mo.grabbed)updateMon(town,mo,dt);});town.mons=town.mons.filter(m=>!m.dead);
+    town.trainers.forEach(tr=>{if(tr.path.length&&!tr.grabbed){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
       if((tr.state==='idle'||tr.state==='think')&&now.t-tr.last>IDLE_MS()&&!town.jobs.some(j=>j.tr===tr)){tr.state='sleep';tr.bubble=null;renderTowns();if(town.name===active)renderSide();}});});
   const town=towns.get(active);
-  ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);drawLabels();
+  ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);
   if(town){
-    drawBoards(town);
+    drawBoards(town);drawLabels();
     const ents=[];
     town.mons.forEach(mo=>ents.push({y:mo.y,draw:()=>{const busy=mo.state==='work'||mo.state==='notice';const moving=mo.path.length>0;
-      const f=busy?Math.floor(now.t/140)%2:moving?Math.floor(now.t/160)%2:Math.floor(now.t/700)%2;const cu=!!custom[mo.role];const sc=mo.helper&&mo.role!=='sub'?.82:1;
-      const hop=moving?(cu?Math.abs(Math.sin(now.t/90))*2:f):busy&&cu?Math.abs(Math.sin(now.t/110))*2:0;
-      shadow(mo.x,mo.y,8*sc);if(mo.state==='throw')return;const k=mo.state==='appear'?Math.max(.1,1-mo.t/320):mo.state==='recall'?Math.max(.03,mo.t/420):mo.state==='vanish'?Math.max(.05,mo.t/350):1;const h=drawImg(monImg(mo.role,f),mo.x,mo.y-hop,mo.face,{cu,scale:sc*k,alpha:mo.state==='bye'?Math.max(0,mo.t/700):1});
+      const f=mo.grabbed?Math.floor(now.t/70)%2:busy?Math.floor(now.t/140)%2:moving?Math.floor(now.t/160)%2:Math.floor(now.t/700)%2;const cu=!!custom[mo.role];const sc=mo.helper&&mo.role!=='sub'?.82:1;
+      const hop=mo.grabbed?0:moving?(cu?Math.abs(Math.sin(now.t/90))*2:f):busy&&cu?Math.abs(Math.sin(now.t/110))*2:0;
+      if(mo.grabbed)shadow(mo.x,mo.y+10,5*sc);else shadow(mo.x,mo.y,8*sc);if(mo.state==='throw')return;const k=mo.state==='appear'?Math.max(.1,1-mo.t/320):mo.state==='recall'?Math.max(.03,mo.t/420):mo.state==='vanish'?Math.max(.05,mo.t/350):1;const h=drawImg(monImg(mo.role,f),mo.x,mo.y-hop,cu?-mo.face:mo.face,{cu,scale:sc*k,alpha:mo.state==='bye'?Math.max(0,mo.t/700):1,rot:mo.grabbed?Math.sin(now.t/55)*.32:0});if(mo.grabbed){struggle(mo.x,mo.y,h);return;}
       if(mo.state==='work')moveFx(mo.role,mo,now.t);
       if(mo.state==='appear'&&mo.t<300){ctx.font=`${7*S}px 'Press Start 2P'`;ctx.fillStyle='#e8a020';ctx.fillText('!',px(mo.x-2),px(mo.y-h-4));}
       if(mo.state==='nap'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#6b8ab0';ctx.fillText('z',px(mo.x+8),px(mo.y-h-((now.t/220)%5)));}
@@ -748,8 +788,8 @@ function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const 
       if(mo.state==='subwork')bubble(mo.x,mo.y,mo.job.detail,'#fff7d6',h+6);
       const st={cheer:['완료!','#e2f7e4'],sad:['실패…','#ffe1e1'],return:['복귀 중…','#fff'],subdone:['복귀 중…','#fff']}[mo.state];
       if(st)bubble(mo.x,mo.y,st[0],st[1],h);}}));
-    town.trainers.forEach(tr=>ents.push({y:tr.y,draw:()=>{const moving=tr.path.length>0;const f=moving?Math.floor(now.t/130)%2:tr.state==='wait'?Math.floor(now.t/90)%2:Math.floor(now.t/800)%2;
-      shadow(tr.x,tr.y);const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-(moving||tr.state==='wait'?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer});
+    town.trainers.forEach(tr=>ents.push({y:tr.y,draw:()=>{const moving=tr.path.length>0&&!tr.grabbed;const f=tr.grabbed?Math.floor(now.t/70)%2:moving?Math.floor(now.t/130)%2:tr.state==='wait'?Math.floor(now.t/90)%2:Math.floor(now.t/800)%2;
+      if(tr.grabbed)shadow(tr.x,tr.y+10,5);else shadow(tr.x,tr.y);const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-(!tr.grabbed&&(moving||tr.state==='wait')?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer,rot:tr.grabbed?Math.sin(now.t/55)*.32:0});if(tr.grabbed){struggle(tr.x,tr.y,h);return;}
       ctx.fillStyle=HATS[tr.color][0];ctx.font=`${4*S}px 'Press Start 2P'`;ctx.fillText('S'+tr.no,px(tr.x-5),px(tr.y+9));
       if(tr.state==='sleep'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#6b8ab0';ctx.fillText('z',px(tr.x+8),px(tr.y-h-((now.t/220)%5)));}
       if(tr.bubble)bubble(tr.x,tr.y,tr.bubble,tr.bubble==='!'?'#ffe066':'#fff',h+4);}}));
@@ -762,16 +802,53 @@ function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const 
       if(f.type==='poof'){const k4=f.t/450;for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.fillStyle=`rgba(255,255,255,${Math.max(0,.9-k4)})`;ctx.beginPath();ctx.arc(px(f.x+Math.cos(a)*(4+k4*12)),px(f.y+Math.sin(a)*(3+k4*8)),px(3*(1-k4)+1),0,7);ctx.fill();}return k4<1;}
       if(f.type==='fly'){const k3=Math.min(1,f.t/700);const x=f.x0+(f.x1-f.x0)*k3,y=f.y0+(f.y1-f.y0)*k3-Math.sin(k3*Math.PI)*30;ctx.drawImage(ITEM[f.role==='sub'?'read':f.role],px(x-4),px(y-4),8*S,8*S);if(k3>=1){town.fx.push({type:'pop',x:f.x1,y:f.y1,t:0});return false;}return true;}
       if(f.type==='confetti'){const k2=f.t/1600;for(let i=0;i<18;i++){ctx.fillStyle=['#ff8fb0','#ffd84a','#6cc4ff','#7cd06a'][i%4];ctx.fillRect(px(f.x+Math.cos(i*1.7)*k2*40),px(f.y-20+Math.sin(i*2.3)*k2*16+k2*k2*30),2*S,2*S);}return k2<1;}return false;});
-  }else{ctx.fillStyle='rgba(255,250,235,.85)';ctx.fillRect(0,0,BW*S,BH*S);ctx.fillStyle='#6b4a2a';ctx.font=`${9*S}px 'DotGothic16',sans-serif`;ctx.textAlign='center';ctx.fillText('세션이 시작되면 마을이 생겨요',BW*S/2,BH*S/2);ctx.textAlign='left';}
+  }else{drawLabels();ctx.fillStyle='rgba(255,250,235,.85)';ctx.fillRect(0,0,BW*S,BH*S);ctx.fillStyle='#6b4a2a';ctx.font=`${9*S}px 'DotGothic16',sans-serif`;ctx.textAlign='center';ctx.fillText('세션이 시작되면 마을이 생겨요',BW*S/2,BH*S/2);ctx.textAlign='left';}
   dialog(dt);
   if(paused){ctx.fillStyle='rgba(60,40,20,.35)';ctx.fillRect(0,0,cv.width,cv.height);ctx.font=`${10*S}px 'Press Start 2P'`;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('PAUSE',cv.width/2,cv.height/2);ctx.textAlign='left';}
   requestAnimationFrame(frame);}
-cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*BW,y=(e.clientY-r.top)/r.height*(BH+DH);const t=towns.get(active);if(!t)return;
-  let best=null,bd=16*TS;t.mons.forEach(m=>{const d=Math.hypot(m.x-x,m.y-12-y);if(d<bd){bd=d;best=m.role;}});
-  let btr=null;t.trainers.forEach(tr=>{const d=Math.hypot(tr.x-x,tr.y-12-y);if(d<bd){bd=d;btr=tr;}});
-  if(btr){$('info').innerHTML=`<b>${tname(btr)}</b> · 세션 <code></code> · ${btr.prompt?'"'+btr.prompt+'"':'대기 중'}`;$('info').querySelector('code').textContent=String(btr.id).slice(0,10);}
-  else if(best)select(best);});
-$('zoomBtn').onclick=()=>{const st=document.querySelector('.stage');const z=st.classList.toggle('zoom');$('zoomBtn').textContent=z?'🔍 전체 보기':'🔍 확대';$('zoomBtn').classList.toggle('on',z);if(z)requestAnimationFrame(()=>{st.scrollLeft=(st.scrollWidth-st.clientWidth)/2;});};
+// 트레이너·포켓몬을 꾹 누르면 잡혀서 바둥바둥, 놓으면 하던 일로 걸어 돌아가요
+function roomAt(p){const tx=p.x/T,ty=p.y/T;return Object.keys(ROOMS).find(k=>{const r=ROOMS[k];return r.ko&&tx>=r.x0&&tx<r.x1+1&&ty>=r.y0-r.face&&ty<r.y1+1;});}
+const inRoom=(k,o)=>{const r=ROOMS[k],tx=o.x/T,ty=(o.y-1)/T;return tx>=r.x0&&tx<r.x1+1&&ty>=r.y0-r.face&&ty<r.y1+1;};
+function openRoomAt(p){const k=roomAt(p);if(k)openRoom(k);}
+function openRoom(k){const t=towns.get(active),r=ROOMS[k];const box=document.createElement('div');box.className='roominfo';
+  const sec=(title)=>{const h=document.createElement('div');h.className='sect';h.style.marginTop='12px';h.textContent=title;box.appendChild(h);};
+  const line=(main,sub,full)=>{const d=document.createElement('div');d.className='rline';d.innerHTML='<div class="a"></div><div class="b"></div>';d.querySelector('.a').textContent=main;d.querySelector('.b').textContent=sub||'';
+    if(full){d.style.cursor='pointer';d.title='눌러서 원문 보기';d.onclick=()=>openModal(main,full);}box.appendChild(d);};
+  const head=document.createElement('p');head.className='muted';head.style.margin='0';head.textContent=`단계: ${r.stage} · 담당: ${ROOM_LABEL_TOOLS[k]||''}`;box.appendChild(head);
+  if(!t){sec('지금 일어나는 일');line('아직 세션이 없어요.');return openModal(r.ko,box);}
+  const jobs=t.jobs.filter(j=>HAB[j.role]&&HAB[j.role].room===k);
+  const subs=t.mons.filter(m=>m.role==='sub'&&m.state==='subwork'&&inRoom(k,m));
+  sec(`작업 중 (${jobs.length+subs.length})`);
+  jobs.forEach(j=>{const st=j.ok===undefined?(j.mon&&j.mon.state==='work'?'일하는 중':'가는 중'):(j.ok?'완료':'실패');
+    line(`${nameOf(j.role)} · ${j.tool} ${j.label}`,`${st} · ${fmtSec(now.t-j.start)} · ${tname(j.tr)} — ${j.full||j.detail}`,j.full||j.detail);});
+  subs.forEach(m=>line(`${nameOf('sub')} · 서브에이전트`,`조사 중 — ${m.job.full||m.job.detail}`,m.job.full||m.job.detail));
+  if(!jobs.length&&!subs.length)line('지금 이 방에서 일하는 포켓몬이 없어요.');
+  const trs=[...t.trainers.values()].filter(tr=>inRoom(k,tr));
+  if(trs.length){sec(`트레이너 (${trs.length})`);trs.forEach(tr=>line(`${tname(tr)}`,tr.prompt?`"${tr.prompt}"`:'',tr.prompt||''));}
+  if(k==='test'){const lt=t.lastTest;sec('마지막 결과');line(lt?`${lt.label} ${lt.ok?'통과':'실패'}`:'아직 실행한 테스트가 없어요.');}
+  if(k==='plan'&&t.todos.length){sec('할 일');t.todos.forEach(td=>line((td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text));}
+  const recent=LOGS.filter(e=>jobs.some(j=>e.text.includes(j.tool))||e.text.includes(r.ko)).slice(0,8);
+  if(recent.length){sec('최근 기록');recent.forEach(e=>line(`${e.ts} ${e.kind}`,e.text,e.text));}
+  openModal(`${r.ko} — 지금 일어나는 일`,box);}
+const GRABBABLE=['wander','go','work','return','rest','nap','subwork','cheer','sad','subdone'];
+const toGame=e=>{const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*BW,y:(e.clientY-r.top)/r.height*BH};};
+function hitEntity(p){const t=towns.get(active);if(!t)return null;let best=null,bd=14;
+  t.mons.forEach(m=>{if(!GRABBABLE.includes(m.state))return;const d=Math.hypot(m.x-p.x,m.y-12-p.y);if(d<bd){bd=d;best=m;}});
+  t.trainers.forEach(tr=>{if(tr.state==='leave'||tr.state==='arrive')return;const d=Math.hypot(tr.x-p.x,tr.y-12-p.y);if(d<bd){bd=d;best=tr;}});return best;}
+let grab=null;
+function grabStart(){if(!grab||grab.on)return;grab.on=true;grab.o.grabbed=true;cv.style.cursor='grabbing';grabMove(grab.p);}
+function grabMove(p){const o=grab.o;o.x=Math.max(T,Math.min(BW-T,p.x));o.y=Math.max(T+14,Math.min(BH-4,p.y+14));}
+let downAt=null;
+cv.addEventListener('pointerdown',e=>{const p=toGame(e);const o=hitEntity(p);if(!o){downAt={p,x:e.clientX,y:e.clientY};return;}e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch{}
+  grab={o,p,on:false,home:{x:o.x,y:o.y},t:setTimeout(grabStart,160)};});
+cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){cv.style.cursor=hitEntity(p)?'grab':roomAt(p)?'pointer':'';return;}
+  grab.p=p;if(!grab.on&&Math.hypot(p.x-grab.home.x,p.y-grab.home.y+12)>4)grabStart();if(grab.on)grabMove(p);});
+function grabEnd(){if(!grab)return;clearTimeout(grab.t);const {o,home,on,p}=grab;grab=null;cv.style.cursor='';if(!on){openRoomAt(p);return;}o.grabbed=false;
+  if(!walkable(Math.floor(o.x/T),Math.floor((o.y-1)/T))){o.x=home.x;o.y=home.y;}
+  const dest=o.path.length?o.path[o.path.length-1]:home;o.path=Math.hypot(dest.x-o.x,dest.y-o.y)>2?findPath(o.x,o.y,dest.x,dest.y):[];
+  if(o.role)o.back=o.path.length>0;}
+cv.addEventListener('pointerup',e=>{if(grab)return grabEnd();if(downAt&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<6)openRoomAt(downAt.p);downAt=null;});cv.addEventListener('pointercancel',grabEnd);
+
 
 // boot
 (async()=>{const saved=store.get('pokeoffice.pack');if(saved){Object.assign(cfg,saved.cfg||{});ROLES.forEach(r=>{if(!cfg[r])cfg[r]={dex:DEF[r].dex,name:''};});for(const [k,u] of Object.entries(saved.urls||{}))await loadDataUrl(k,u);}
