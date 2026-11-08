@@ -514,7 +514,7 @@ function getTrainer(town,sid){let tr=town.trainers.get(sid);if(tr)return tr;
   const s=SLOTS[slot%SLOTS.length];walk(tr,s[0]*T,s[1]*T).then(()=>{if(tr.state==='arrive')tr.state='idle';});
   town.trainers.set(sid,tr);ticker(town,`트레이너 ${tr.no} 출근! (새 Claude Code 세션)`,tr);log('session',`${town.name} · 세션 ${tr.no} 시작`);renderTowns();return tr;}
 function walk(a,x,y){return new Promise(res=>{a.path=findPath(a.x,a.y,x,y);a.arrive=res;});}
-const NICK=store.get('pokeoffice.nicks')||{};const CLOSED=new Set();
+const NICK=store.get('pokeoffice.nicks')||{},TNICK=store.get('pokeoffice.townNicks')||{};const townLabel=n=>TNICK[n]||n;const CLOSED=new Set();
 const tname=tr=>NICK[tr.id]||`트레이너 ${tr.no}`;
 function toSeat(tr){const s=SLOTS[tr.slot%SLOTS.length];if(Math.hypot(tr.x-s[0]*T,tr.y-s[1]*T)>4)walk(tr,s[0]*T,s[1]*T);tr.lounge=false;}
 function toLounge(town,tr){const used=[...town.trainers.values()].filter(x=>x!==tr&&x.lounge).map(x=>x.sofa);let i=0;while(used.includes(i))i++;tr.sofa=i;tr.lounge=true;const s=SOFA[i%SOFA.length];walk(tr,s[0]*T,s[1]*T);}
@@ -614,7 +614,7 @@ function finishJob(town,mo){const j=mo.job;town.jobs=town.jobs.filter(x=>x!==j);
 // ───────── UI: towns, side panels
 function townStatus(t){const st=[...t.trainers.values()];if(st.some(s=>s.state==='wait'))return'wait';if(t.jobs.length||st.some(s=>s.state==='think'||s.state==='pin'))return'work';return'idle';}
 function renderTowns(){const el=$('towns');el.innerHTML='';towns.forEach((t,name)=>{const b=document.createElement('button');if(name===active)b.classList.add('on');
-  b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=name;b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
+  b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=townLabel(name);b.title=TNICK[name]?`폴더: ${name} · 우클릭: 이름 바꾸기 · 삭제`:'프로젝트 폴더 · 우클릭: 이름 바꾸기 · 삭제';b.oncontextmenu=e=>openMenu(e,townLabel(name),[['이름 바꾸기',()=>renameTown(name)],['삭제',()=>closeTown(name),'del']]);b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
 }
 let selected=null;
 const ROOMCOL={research:'#6b8ad9',dev:'#3a9ad9',term:'#7a7a8a',plan:'#e8a030'};
@@ -945,22 +945,27 @@ function openRoom(k){const t=towns.get(active),r=ROOMS[k];const box=document.cre
   if(recent.length){sec('최근 기록');recent.forEach(e=>line(`${e.ts} ${e.kind}`,e.text,e.text));}
   openModal(r.ko,box);}
 // 트레이너(세션) 우클릭 → 포켓몬 게임 같은 메뉴. 화면에서만 바뀌고 Claude Code 세션은 그대로예요
-function openCtx(e,tr){e.preventDefault();showTip(null,'');const m=$('ctxm');m.innerHTML='';
-  const hd=document.createElement('div');hd.className='hd';hd.textContent=tname(tr);m.appendChild(hd);
-  const item=(label,fn,cls)=>{const b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;b.onclick=()=>{closeCtx();fn();};m.appendChild(b);};
-  if(tr.recap)item('recap 보기',()=>openRecap(tr));
-  item('이름 바꾸기',()=>renameTrainer(tr));item('삭제',()=>closeTrainer(tr),'del');
+function openMenu(e,title,items){e.preventDefault();showTip(null,'');const m=$('ctxm');m.innerHTML='';
+  const hd=document.createElement('div');hd.className='hd';hd.textContent=title;m.appendChild(hd);
+  items.forEach(([label,fn,cls])=>{const b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;b.onclick=()=>{closeCtx();fn();};m.appendChild(b);});
   m.hidden=false;const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.min(e.clientX,innerWidth-w-10)+'px';m.style.top=Math.min(e.clientY,innerHeight-h-10)+'px';m.querySelector('button').focus();}
+function openCtx(e,tr){openMenu(e,tname(tr),[...(tr.recap?[['recap 보기',()=>openRecap(tr)]]:[]),['이름 바꾸기',()=>renameTrainer(tr)],['삭제',()=>closeTrainer(tr),'del']]);}
 function closeCtx(){$('ctxm').hidden=true;}
 document.addEventListener('pointerdown',e=>{if(!$('ctxm').hidden&&!e.target.closest('#ctxm'))closeCtx();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx();});
 addEventListener('scroll',closeCtx,true);addEventListener('resize',closeCtx);
-function renameTrainer(tr){const box=document.createElement('div');box.className='renm';
-  box.innerHTML=`<p class="muted" style="margin:0">이 화면에서만 보이는 이름이에요. 비우면 원래 이름(트레이너 ${tr.no})으로 돌아가요.</p><input type="text" maxlength="20"><div class="row"><button>취소</button><button class="on">확인</button></div>`;
-  const inp=box.querySelector('input');inp.value=NICK[tr.id]||'';inp.placeholder=`트레이너 ${tr.no}`;
-  const ok=()=>{const v=inp.value.trim();if(v)NICK[tr.id]=v;else delete NICK[tr.id];store.set('pokeoffice.nicks',NICK);closeModal();renderSide();log('session',`${tr.town.name}·${tr.no} 이름 → ${tname(tr)}`);};
+function askName(orig,cur,save){const box=document.createElement('div');box.className='renm';
+  box.innerHTML=`<p class="muted" style="margin:0">이 화면에서만 보이는 이름이에요. 비우면 원래 이름(<b></b>)으로 돌아가요.</p><input type="text" maxlength="24"><div class="row"><button>취소</button><button class="on">확인</button></div>`;
+  box.querySelector('b').textContent=orig;const inp=box.querySelector('input');inp.value=cur||'';inp.placeholder=orig;
+  const ok=()=>{save(inp.value.trim());closeModal();};
   const [no,yes]=box.querySelectorAll('button');no.onclick=closeModal;yes.onclick=ok;inp.onkeydown=e=>{if(e.key==='Enter')ok();};
   openModal('이름 바꾸기',box);setTimeout(()=>inp.focus(),0);}
+function renameTrainer(tr){askName(`트레이너 ${tr.no}`,NICK[tr.id],v=>{if(v)NICK[tr.id]=v;else delete NICK[tr.id];store.set('pokeoffice.nicks',NICK);renderSide();log('session',`${tr.town.name}·${tr.no} 이름 → ${tname(tr)}`);});}
+// 위쪽 탭 = 프로젝트(작업 폴더). 이름은 화면에서만 바뀌고, 삭제하면 그 폴더의 트레이너가 모두 화면에서 사라져요
+function renameTown(name){askName(name,TNICK[name],v=>{if(v)TNICK[name]=v;else delete TNICK[name];store.set('pokeoffice.townNicks',TNICK);renderTowns();log('session',`${name} 탭 이름 → ${townLabel(name)}`);});}
+function closeTown(name){const t=towns.get(name);if(!t)return;t.trainers.forEach(tr=>{CLOSED.add(tr.id);clearAlert(tr);});towns.delete(name);
+  if(active===name){active=towns.keys().next().value||null;const n=active&&towns.get(active);dlgSet(n?(n.ticker.at(-1)||{text:''}).text:'');}
+  log('session',`${name} 탭을 화면에서 닫음 (세션 ${t.trainers.size}개)`);renderTowns();renderSide();}
 function closeTrainer(tr){const town=tr.town;if(!town.trainers.has(tr.id))return;CLOSED.add(tr.id);clearAlert(tr);
   town.jobs.forEach(j=>{if(j.tr===tr&&j.ok===undefined){j.ok=false;j.cancel=true;j.endAt=now.t;}});
   town.mons.forEach(m=>{if(m.role==='sub'&&m.subOf===tr.id){m.state='vanish';m.t=350;}});
