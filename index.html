@@ -518,6 +518,12 @@ const NICK=store.get('pokeoffice.nicks')||{},TNICK=store.get('pokeoffice.townNic
 const tname=tr=>NICK[tr.id]||`트레이너 ${tr.no}`;
 function toSeat(tr){const s=SLOTS[tr.slot%SLOTS.length];if(Math.hypot(tr.x-s[0]*T,tr.y-s[1]*T)>4)walk(tr,s[0]*T,s[1]*T);tr.lounge=false;}
 function toLounge(town,tr){const used=[...town.trainers.values()].filter(x=>x!==tr&&x.lounge).map(x=>x.sofa);let i=0;while(used.includes(i))i++;tr.sofa=i;tr.lounge=true;const s=SOFA[i%SOFA.length];walk(tr,s[0]*T,s[1]*T);}
+// 트레이너 퇴근: 출입문까지 걸어가서 사라지고, 그 탭에 아무도 안 남으면 탭도 닫아요
+function leaveTrainer(town,tr,say){clearAlert(tr);tr.state='leave';tr.bubble=say;
+  walk(tr,GATE.x,GATE.y).then(()=>{if(town.trainers.get(tr.id)===tr)town.trainers.delete(tr.id);if(!town.trainers.size&&towns.get(town.name)===town)removeTown(town.name);renderTowns();renderSide();});}
+function removeTown(name){towns.delete(name);
+  if(active===name){active=towns.keys().next().value||null;const n=active&&towns.get(active);dlgSet(n?(n.ticker.at(-1)||{text:''}).text:'');}}
+const AWAY_MS=30*60e3; // 실제 연결에서 이만큼 아무 신호가 없으면 창이 닫힌 걸로 보고 퇴근
 const actText=a=>`${a.tool} · ${a.label}`;
 function ticker(town,text,tr){town.ticker.push({text,tr:tr?tr.no:null,color:tr?tr.color:null});if(town.ticker.length>30)town.ticker.shift();if(town.name===active)dlgSet(text,tr);}
 
@@ -526,7 +532,7 @@ function handleEvent(ev){
   if(ev.session&&CLOSED.has(ev.session)){if(ev.kind!=='prompt'&&ev.kind!=='session_start')return;CLOSED.delete(ev.session);}
   if(ev.soft){const tn=ev.town||(ev.cwd?String(ev.cwd).split(/[\\/]/).filter(Boolean).pop():'my-project');const tw=towns.get(tn);if(!tw||!tw.trainers.has(ev.session))return;}
   const town=getTown(ev.town||(ev.cwd?String(ev.cwd).split(/[\\/]/).filter(Boolean).pop():'my-project'));
-  const tr=getTrainer(town,ev.session||'local');tr.last=now.t;if(tr.state==='sleep')tr.state='idle';
+  let tr=getTrainer(town,ev.session||'local');if(tr.state==='leave'&&ev.kind!=='session_end'){town.trainers.delete(tr.id);tr=getTrainer(town,ev.session||'local');}tr.last=now.t;if(tr.state==='sleep')tr.state='idle';
   const act=resolveAction(ev.tool,ev);const role=act.role;
   switch(ev.kind){
     case 'session_start':break;
@@ -551,7 +557,7 @@ function handleEvent(ev){
       ticker(town,`${tname(tr)}: 작업 끝! 휴게실에서 쉬면서 다음 지시를 기다려요`,tr);break;
     case 'recap':{const text=String(ev.text||'').trim();if(!text||tr.recap&&tr.recap.text===text)return;tr.recap={text,wall:Date.now()};
       log('recap',`${town.name}·${tr.no} ${text}`);ticker(town,`${tname(tr)}의 recap: ${text}`,tr);break;}
-    case 'session_end':clearAlert(tr);tr.state='leave';tr.bubble='퇴근!';walk(tr,GATE.x,GATE.y).then(()=>{town.trainers.delete(tr.id);renderTowns();renderSide();});log('session',`${town.name} · 세션 ${tr.no} 종료`);break;
+    case 'session_end':leaveTrainer(town,tr,'퇴근!');log('session',`${town.name} · 세션 ${tr.no} 종료`);break;
   }
   renderTowns();if(town.name===active)renderSide();
 }
@@ -878,6 +884,7 @@ function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const 
   const due=timers.filter(x=>x.at<=now.t);if(due.length){for(const d of due)timers.splice(timers.indexOf(d),1);due.forEach(d=>d.res());}
   towns.forEach(town=>{town.mons.forEach(mo=>{if(!mo.grabbed)updateMon(town,mo,dt);});town.mons=town.mons.filter(m=>!m.dead);
     town.trainers.forEach(tr=>{if(tr.path.length&&!tr.grabbed){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
+      if(LIVE&&tr.state!=='leave'&&now.t-tr.last>AWAY_MS){leaveTrainer(town,tr,'퇴근!');ticker(town,`${tname(tr)}: 30분 동안 소식이 없어서 퇴근했어요. 프롬프트를 보내면 다시 출근해요.`,tr);log('session',`${town.name} · 세션 ${tr.no} 30분 동안 신호 없음 → 퇴근`);renderTowns();if(town.name===active)renderSide();return;}
       if((tr.state==='idle'||tr.state==='think')&&now.t-tr.last>IDLE_MS()&&!town.jobs.some(j=>j.tr===tr)){tr.state='sleep';tr.bubble=null;renderTowns();if(town.name===active)renderSide();}});});
   const town=towns.get(active);
   ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);
@@ -963,13 +970,12 @@ function askName(orig,cur,save){const box=document.createElement('div');box.clas
 function renameTrainer(tr){askName(`트레이너 ${tr.no}`,NICK[tr.id],v=>{if(v)NICK[tr.id]=v;else delete NICK[tr.id];store.set('pokeoffice.nicks',NICK);renderSide();log('session',`${tr.town.name}·${tr.no} 이름 → ${tname(tr)}`);});}
 // 위쪽 탭 = 프로젝트(작업 폴더). 이름은 화면에서만 바뀌고, 삭제하면 그 폴더의 트레이너가 모두 화면에서 사라져요
 function renameTown(name){askName(name,TNICK[name],v=>{if(v)TNICK[name]=v;else delete TNICK[name];store.set('pokeoffice.townNicks',TNICK);renderTowns();log('session',`${name} 탭 이름 → ${townLabel(name)}`);});}
-function closeTown(name){const t=towns.get(name);if(!t)return;t.trainers.forEach(tr=>{CLOSED.add(tr.id);clearAlert(tr);});towns.delete(name);
-  if(active===name){active=towns.keys().next().value||null;const n=active&&towns.get(active);dlgSet(n?(n.ticker.at(-1)||{text:''}).text:'');}
+function closeTown(name){const t=towns.get(name);if(!t)return;t.trainers.forEach(tr=>{CLOSED.add(tr.id);clearAlert(tr);});removeTown(name);
   log('session',`${name} 탭을 화면에서 닫음 (세션 ${t.trainers.size}개)`);renderTowns();renderSide();}
 function closeTrainer(tr){const town=tr.town;if(!town.trainers.has(tr.id))return;CLOSED.add(tr.id);clearAlert(tr);
   town.jobs.forEach(j=>{if(j.tr===tr&&j.ok===undefined){j.ok=false;j.cancel=true;j.endAt=now.t;}});
   town.mons.forEach(m=>{if(m.role==='sub'&&m.subOf===tr.id){m.state='vanish';m.t=350;}});
-  tr.state='leave';tr.bubble='안녕!';tr.recap=null;walk(tr,GATE.x,GATE.y).then(()=>{town.trainers.delete(tr.id);renderTowns();renderSide();});
+  tr.recap=null;leaveTrainer(town,tr,'안녕!');
   ticker(town,`${tname(tr)}이(가) 화면에서 퇴근했어요. 이 세션에 새 프롬프트를 보내면 다시 출근해요.`,tr);log('session',`${town.name} · ${tname(tr)} 화면에서 닫음`);renderTowns();renderSide();}
 cv.addEventListener('contextmenu',e=>{const o=hitEntity(toGame(e));if(o&&!o.role)openCtx(e,o);else{e.preventDefault();closeCtx();}});
 $('sessList').addEventListener('contextmenu',e=>{const row=e.target.closest('[data-sid]');if(!row)return;const t=towns.get(active);const tr=t&&t.trainers.get(row.dataset.sid);if(tr)openCtx(e,tr);});
