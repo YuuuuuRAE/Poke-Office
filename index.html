@@ -627,8 +627,11 @@ function finishJob(town,mo){const j=mo.job;town.jobs=town.jobs.filter(x=>x!==j);
 
 // ───────── UI: towns, side panels
 function townStatus(t){const st=[...t.trainers.values()];if(st.some(s=>s.state==='wait'))return'wait';if(t.jobs.length||st.some(s=>s.state==='think'||s.state==='pin'))return'work';return'idle';}
+// 폴더 탭 호버: 방 설명과 같은 게임풍 상자 (짧게 3줄)
+function townTip(name,t){const st=townStatus(t);const [lab,col]={wait:['승인 필요','#e0a020'],work:['작업 중','#5a7ad0'],idle:['쉬는 중','#8a8a9a']}[st];
+  const jobs=t.jobs.length;return `<b>${esc(townLabel(name))}</b><span class="st" style="background:${col}">${lab}</span><br>${TNICK[name]?`폴더 ${esc(name)} / `:''}트레이너 ${t.trainers.size}명 / 작업 ${jobs}개<small>클릭하면 이 사무실 보기 / 우클릭하면 메뉴</small>`;}
 function renderTowns(){const el=$('towns');el.innerHTML='';towns.forEach((t,name)=>{const b=document.createElement('button');if(name===active)b.classList.add('on');
-  b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=townLabel(name);b.title=TNICK[name]?`폴더: ${name} · 우클릭: 이름 수정 · 삭제`:'프로젝트 폴더 · 우클릭: 이름 수정 · 삭제';b.oncontextmenu=e=>openMenu(e,townLabel(name),[['이름 수정',()=>renameTown(name)],['삭제',()=>closeTown(name),'del']]);b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
+  b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=townLabel(name);b.onmousemove=e=>showTip(e,townTip(name,t));b.onmouseleave=()=>showTip(null,'');b.oncontextmenu=e=>openMenu(e,townLabel(name),[['이름 수정',()=>renameTown(name)],['삭제',()=>closeTown(name),'del']]);b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
 }
 let selected=null;
 const ROOMCOL={research:'#6b8ad9',dev:'#3a9ad9',term:'#7a7a8a',plan:'#e8a030'};
