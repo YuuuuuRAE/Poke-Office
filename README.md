@@ -38,6 +38,8 @@ npm start            # http://127.0.0.1:4321
 
 브라우저에서 http://127.0.0.1:4321 을 열어 두고 Claude Code를 쓰면 됩니다. 이미 켜져 있던 Claude Code는 다시 실행해야 훅이 적용됩니다.
 
+Windows PowerShell에서 `npm` 실행이 막혀 있다면(스크립트를 실행할 수 없다는 오류) 명령 프롬프트(cmd)에서 실행하거나 `install.cmd`를 쓰면 됩니다.
+
 ## 방 구성
 
 ```
@@ -81,7 +83,7 @@ Bash는 명령 내용을 보고 방을 나눕니다. macOS/Linux의 Claude Code�
 
 ### 오른쪽 패널
 
-- **사용 한도**: 5시간 / 주간 한도의 남은 양을 HP 바로 보여줍니다. 상태줄 스크립트가 `rate_limits`를 `~/.claude/statusline-cache.json`에 저장하는 경우에만 나옵니다.
+- **사용 한도**: 5시간 / 주간 한도의 남은 양을 HP 바로 보여줍니다. 따로 설정해야 나옵니다. [사용 한도 HP 바 켜기](#사용-한도-hp-바-켜기) 참고.
 - **작업 목록**: 지금 일하는 포켓몬, 처리 중인 파일이나 명령, 경과 시간
 - **세션**: 트레이너별 상태와 마지막 프롬프트. **세션 찾기**는 최근 1시간 안에 쓴 세션을 대화 기록에서 찾아 불러옵니다. 서버를 켜기 전부터 열려 있던 창도 찾습니다.
 - **내 파티**: 역할별 포켓몬과 일한 횟수
@@ -149,6 +151,35 @@ Bash는 명령 내용을 보고 방을 나눕니다. macOS/Linux의 Claude Code�
 ```
 </details>
 
+## 사용 한도 HP 바 켜기
+
+오른쪽 위 HP 바는 Claude Code가 상태줄(statusLine)에만 넘겨주는 사용량 정보를 씁니다. 그래서 상태줄 설정을 한 번 해 줘야 보입니다. Pro / Max 구독에서만 나오는 정보이고, 세션에서 첫 응답을 받은 뒤부터 채워집니다.
+
+**상태줄을 따로 쓰고 있지 않다면** `~/.claude/settings.json`에 아래를 추가합니다. 상태줄에는 모델 이름과 남은 사용량이 짧게 나옵니다.
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "node /절대경로/poke-office/scripts/statusline.mjs"
+}
+```
+
+**이미 쓰는 상태줄 스크립트가 있다면** 그 스크립트가 받은 입력을 `--save-only`로 넘겨 주기만 하면 됩니다. 아무것도 출력하지 않아서 기존 상태줄은 그대로입니다.
+
+```bash
+# bash
+input=$(cat)
+echo "$input" | node /절대경로/poke-office/scripts/statusline.mjs --save-only
+```
+
+```powershell
+# PowerShell
+$raw = [Console]::In.ReadToEnd()
+$raw | node /절대경로/poke-office/scripts/statusline.mjs --save-only
+```
+
+설정 후 Claude Code를 다시 실행하고 한 번 대화하면 HP 바가 나타납니다. 값은 `~/.claude/statusline-cache.json`에 저장됩니다.
+
 ## 문제 해결
 
 ```bash
@@ -158,6 +189,7 @@ npm run doctor
 Node, git, 스프라이트, 서버, 훅 연결을 차례로 확인하고 고치는 방법을 알려줍니다.
 
 - **변경 버튼이 회색**: `http://127.0.0.1:4321`로 열어야 합니다. `index.html`을 파일로 직접 열면 포켓몬을 바꿀 수 없습니다.
+- **HP 바가 안 보임**: 상태줄 설정이 필요합니다. 설정했다면 Claude Code에서 한 번 대화한 뒤 `~/.claude/statusline-cache.json`이 생겼는지 확인합니다.
 - **스프라이트가 없음**: `npm run setup`으로 다시 받습니다. macOS에서 git이 없다면 `xcode-select --install`을 먼저 실행합니다.
 
 ## 구조
@@ -171,6 +203,7 @@ scripts/setup-sprites.mjs     PokeAPI 스프라이트 다운로드
 scripts/install-hooks.mjs     훅 추가 / 제거
 scripts/doctor.mjs            설치 / 연결 진단
 scripts/install-shortcut.mjs  바탕화면 아이콘
+scripts/statusline.mjs        상태줄 스크립트 (HP 바용 사용량 저장)
 scripts/start.cmd             아이콘 실행 파일 (업데이트 → 서버 → 브라우저)
 install.cmd                   Windows 설치
 vendor/                       받은 스프라이트 (git 제외)
