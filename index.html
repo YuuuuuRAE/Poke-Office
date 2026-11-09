@@ -284,14 +284,14 @@ const DEF={
 };
 // rooms: floor rects in tiles (inclusive), face = wall-face rows above the floor
 const ROOMS={
-  research:{ko:'리서치실',x0:1,y0:2,x1:9,y1:7,face:2,tag:'#6b8ad9',stage:'조사',desc:'이 곳에서는 파일을 읽고 코드를 찾아보는 조사를 진행합니다.'},
-  dev:{ko:'개발실',x0:11,y0:2,x1:20,y1:7,face:2,tag:'#4aa8d9',stage:'수정',desc:'이 곳에서는 파일을 고치거나 새로 쓰는 작업을 진행합니다.'},
-  test:{ko:'테스트실',x0:22,y0:2,x1:30,y1:7,face:2,tag:'#5fbf62',stage:'검증',desc:'이 곳에서는 테스트 · 린트 · 빌드로 결과 검증을 진행합니다.'},
+  research:{ko:'리서치실',x0:1,y0:2,x1:9,y1:7,face:2,tag:'#6b8ad9',stage:'조사',desc:'파일을 읽고 코드를 찾아보는 곳'},
+  dev:{ko:'개발실',x0:11,y0:2,x1:20,y1:7,face:2,tag:'#4aa8d9',stage:'수정',desc:'파일을 고치거나 새로 쓰는 곳'},
+  test:{ko:'테스트실',x0:22,y0:2,x1:30,y1:7,face:2,tag:'#5fbf62',stage:'검증',desc:'테스트 / 린트 / 빌드로 결과를 검증하는 곳'},
   hall:{ko:'',x0:1,y0:9,x1:30,y1:11,face:0},
-  plan:{ko:'기획실',x0:1,y0:14,x1:10,y1:18,face:2,tag:'#e8a030',stage:'계획',desc:'이 곳에서는 할 일을 정리하고 서브에이전트 조사를 진행합니다.'},
+  plan:{ko:'기획실',x0:1,y0:14,x1:10,y1:18,face:2,tag:'#e8a030',stage:'계획',desc:'할 일을 정리하고 서브에이전트가 조사하는 곳'},
   entry:{ko:'',x0:12,y0:12,x1:14,y1:19,face:0},
-  term:{ko:'터미널실',x0:16,y0:14,x1:23,y1:18,face:2,tag:'#8a8a9a',stage:'실행·외부',desc:'이 곳에서는 명령어 실행과 웹 · 외부 도구 작업을 진행합니다.'},
-  lounge:{ko:'휴게실',x0:25,y0:14,x1:30,y1:18,face:2,tag:'#d97aa8',stage:'휴식',desc:'이 곳에서는 답변을 마친 트레이너가 다음 지시를 기다리며 휴식합니다.'},
+  term:{ko:'터미널실',x0:16,y0:14,x1:23,y1:18,face:2,tag:'#8a8a9a',stage:'실행/외부',desc:'명령어를 실행하고 웹 / 외부 도구를 쓰는 곳'},
+  lounge:{ko:'휴게실',x0:25,y0:14,x1:30,y1:18,face:2,tag:'#d97aa8',stage:'휴식',desc:'답변이 끝나고 휴식하는 곳'},
 };
 const HAB={
   read:{name:'리서치실',room:'research',spots:[[5,6.8],[3.6,6.8],[6.4,6.8]]},
@@ -308,7 +308,7 @@ const DOOR={research:[4.9,7.7],dev:[16,7.7],test:[26.5,7.7],plan:[9.5,14.4],term
 const SLOTS=[[3.4,16.9],[7.6,16.9],[5.5,14.9],[5.5,18.8],[3.4,15.2],[7.6,18.6]];
 const SOFA=[[26.2,15.4],[27.6,15.4],[29,15.4],[26.2,18.4],[27.6,18.4],[29,18.4]];
 const GATE={x:13.5*T,y:19.9*T};
-const ROOM_LABEL_TOOLS={research:'Read · Grep · Glob · 읽기 명령',dev:'Edit · Write',test:'테스트 · 린트 · 빌드',term:'Bash · Web · MCP',plan:'세션 · 할 일 · 계획',lounge:'답변이 끝나면 휴식'};
+const ROOM_LABEL_TOOLS={research:'Read / Grep / Glob / 읽기 명령',dev:'Edit / Write',test:'테스트 / 린트 / 빌드 명령',term:'Bash / Web / MCP',plan:'TodoWrite / Agent'};
 
 // Bash 명령을 내용으로 분류 (macOS/Linux에선 검색도 Bash로 들어옴)
 function classifyBash(cmd){
@@ -615,12 +615,12 @@ function updateMon(town,mo,dt){const h=HAB[mo.role];mo.t-=dt;
   }}
 function finishJob(town,mo){const j=mo.job;town.jobs=town.jobs.filter(x=>x!==j);mo.job=null;mo.spot=null;
   recallMon(town,mo);
-  const tr=j.tr;if(!town.jobs.some(x=>x.tr===tr)&&tr.state==='think')tr.bubble='…';}
+  const tr=j.tr;if(!town.jobs.some(x=>x.tr===tr)&&tr.state==='think')tr.bubble='…';if(town.name===active)renderSessions();}
 
 // ───────── UI: towns, side panels
 function townStatus(t){const st=[...t.trainers.values()];if(st.some(s=>s.state==='wait'))return'wait';if(t.jobs.length||st.some(s=>s.state==='think'||s.state==='pin'))return'work';return'idle';}
 function renderTowns(){const el=$('towns');el.innerHTML='';towns.forEach((t,name)=>{const b=document.createElement('button');if(name===active)b.classList.add('on');
-  b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=townLabel(name);b.title=TNICK[name]?`폴더: ${name} · 우클릭: 이름 바꾸기 · 삭제`:'프로젝트 폴더 · 우클릭: 이름 바꾸기 · 삭제';b.oncontextmenu=e=>openMenu(e,townLabel(name),[['이름 바꾸기',()=>renameTown(name)],['삭제',()=>closeTown(name),'del']]);b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
+  b.innerHTML=`<span class="dot ${townStatus(t)}"></span><span></span><small style="color:var(--quiet)">· ${t.trainers.size}</small>`;b.children[1].textContent=townLabel(name);b.title=TNICK[name]?`폴더: ${name} · 우클릭: 이름 수정 · 삭제`:'프로젝트 폴더 · 우클릭: 이름 수정 · 삭제';b.oncontextmenu=e=>openMenu(e,townLabel(name),[['이름 수정',()=>renameTown(name)],['삭제',()=>closeTown(name),'del']]);b.onclick=()=>{active=name;dlgSet((t.ticker.at(-1)||{text:''}).text);renderTowns();renderSide();};el.appendChild(b);});
 }
 let selected=null;
 const ROOMCOL={research:'#6b8ad9',dev:'#3a9ad9',term:'#7a7a8a',plan:'#e8a030'};
@@ -697,7 +697,7 @@ function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)re
 function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!el)return;
   if(!t||!t.trainers.size){el.innerHTML=`<div class="empty">${LIVE?'Claude Code를 실행하면 트레이너가 출근해요.':'세션이 없어요.'}</div>`;return;}
   el.innerHTML='';const g=t.growth;
-  t.trainers.forEach(tr=>{if(tr.state==='leave')return;const c=document.createElement('div');c.className='wrow';c.dataset.sid=tr.id;c.title='우클릭: 이름 바꾸기 · 삭제';
+  t.trainers.forEach(tr=>{if(tr.state==='leave')return;const c=document.createElement('div');c.className='wrow';c.dataset.sid=tr.id;c.title='우클릭: 이름 수정 · 삭제';
     const st=tr.lounge&&tr.state==='idle'?'휴게실에서 휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'⚠ 승인·답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
     c.innerHTML=`<div class="sw" style="width:40px;height:40px;background:${HATS[tr.color][0]}">S${tr.no}</div><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${tr.recap?'<button class="recapb" title="recap 보기">!</button>':''}${jobs?jobs+'건':''}</div>`;
@@ -880,12 +880,20 @@ const dlg={text:'',shown:0,color:null};function dlgSet(text,tr){dlg.text=text||'
 let dlgShownPrev=-1;function dialog(dt){dlg.shown=Math.min(dlg.text.length,dlg.shown+dt/22);if(dlg.shown>=90)dlg.shown=dlg.text.length;const n=Math.floor(dlg.shown);if(n!==dlgShownPrev){dlgShownPrev=n;const el=$('dlgText');el.textContent=dlg.text.slice(0,n);$('dlgDot').style.background=dlg.color||'transparent';}}
 $('dlgMore').onclick=()=>openModal('대화',dlg.text);
 let last=performance.now();
-function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));const raw=Math.max(0,Math.min(50,ts-last));last=ts;const dt=paused?0:raw*speed;now.t+=dt;
+// 브라우저는 숨겨진 탭이나 가려진 창의 화면 갱신을 멈춰요. 그동안 흐른 시간을 조금씩 나눠 계산만 해 두면, 돌아왔을 때 밀린 동작이 한꺼번에 재생되지 않아요
+function catchUp(t=performance.now()){let ms=Math.min(t-last,30*60e3);last=t;if(paused||ms<=0)return;ms*=speed;
+  const long=ms>2000;while(ms>0){const d=Math.min(50,ms);step(d);ms-=d;}if(long)towns.forEach(town=>{town.fx=[];});}
+// 숨겨진 탭뿐 아니라 다른 창에 가려졌을 때도 갱신이 멈추므로, 0.5초 넘게 그리지 못했으면 계산을 따라잡아요
+setInterval(()=>{if(performance.now()-last>500)catchUp();},1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)catchUp();});addEventListener('focus',catchUp);
+function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));if(ts-last>100)catchUp(ts);const raw=Math.max(0,Math.min(50,ts-last));last=ts;const dt=paused?0:raw*speed;step(dt);draw(dt);}
+function step(dt){now.t+=dt;
   const due=timers.filter(x=>x.at<=now.t);if(due.length){for(const d of due)timers.splice(timers.indexOf(d),1);due.forEach(d=>d.res());}
   towns.forEach(town=>{town.mons.forEach(mo=>{if(!mo.grabbed)updateMon(town,mo,dt);});town.mons=town.mons.filter(m=>!m.dead);
     town.trainers.forEach(tr=>{if(tr.path.length&&!tr.grabbed){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
       if(LIVE&&tr.state!=='leave'&&now.t-tr.last>AWAY_MS){leaveTrainer(town,tr,'퇴근!');ticker(town,`${tname(tr)}: 30분 동안 소식이 없어서 퇴근했어요. 프롬프트를 보내면 다시 출근해요.`,tr);log('session',`${town.name} · 세션 ${tr.no} 30분 동안 신호 없음 → 퇴근`);renderTowns();if(town.name===active)renderSide();return;}
-      if((tr.state==='idle'||tr.state==='think')&&now.t-tr.last>IDLE_MS()&&!town.jobs.some(j=>j.tr===tr)){tr.state='sleep';tr.bubble=null;renderTowns();if(town.name===active)renderSide();}});});
+      if((tr.state==='idle'||tr.state==='think')&&now.t-tr.last>IDLE_MS()&&!town.jobs.some(j=>j.tr===tr)){tr.state='sleep';tr.bubble=null;renderTowns();if(town.name===active)renderSide();}});});}
+function draw(dt){
   const town=towns.get(active);
   ctx.drawImage(map,0,0,BW*S,BH*S);animMap(now.t);
   if(town){
@@ -935,7 +943,7 @@ function openRoom(k){const t=towns.get(active),r=ROOMS[k];const box=document.cre
   const sec=(title)=>{const h=document.createElement('div');h.className='sect';h.style.marginTop='12px';h.textContent=title;box.appendChild(h);};
   const line=(main,sub,full)=>{const d=document.createElement('div');d.className='rline';d.innerHTML='<div class="a"></div><div class="b"></div>';d.querySelector('.a').textContent=main;d.querySelector('.b').textContent=sub||'';
     if(full){d.style.cursor='pointer';d.title='눌러서 원문 보기';d.onclick=()=>openModal(main,full);}box.appendChild(d);};
-  const head=document.createElement('p');head.className='muted';head.style.margin='0';head.style.fontSize='13.5px';head.textContent=r.desc||'';box.appendChild(head);
+  const head=document.createElement('p');head.className='muted';head.style.margin='0';head.style.fontSize='13.5px';head.textContent=(r.desc||'')+(ROOM_LABEL_TOOLS[k]?` (${ROOM_LABEL_TOOLS[k]})`:'');box.appendChild(head);
   if(!t){line('아직 세션이 없어요.');return openModal(r.ko,box);}
   const jobs=t.jobs.filter(j=>HAB[j.role]&&HAB[j.role].room===k);
   const subs=t.mons.filter(m=>m.role==='sub'&&m.state==='subwork'&&inRoom(k,m));
@@ -956,7 +964,7 @@ function openMenu(e,title,items){e.preventDefault();showTip(null,'');const m=$('
   const hd=document.createElement('div');hd.className='hd';hd.textContent=title;m.appendChild(hd);
   items.forEach(([label,fn,cls])=>{const b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;b.onclick=()=>{closeCtx();fn();};m.appendChild(b);});
   m.hidden=false;const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.min(e.clientX,innerWidth-w-10)+'px';m.style.top=Math.min(e.clientY,innerHeight-h-10)+'px';m.querySelector('button').focus();}
-function openCtx(e,tr){openMenu(e,tname(tr),[...(tr.recap?[['recap 보기',()=>openRecap(tr)]]:[]),['이름 바꾸기',()=>renameTrainer(tr)],['삭제',()=>closeTrainer(tr),'del']]);}
+function openCtx(e,tr){openMenu(e,tname(tr),[...(tr.recap?[['recap 보기',()=>openRecap(tr)]]:[]),['이름 수정',()=>renameTrainer(tr)],['삭제',()=>closeTrainer(tr),'del']]);}
 function closeCtx(){$('ctxm').hidden=true;}
 document.addEventListener('pointerdown',e=>{if(!$('ctxm').hidden&&!e.target.closest('#ctxm'))closeCtx();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx();});
@@ -966,7 +974,7 @@ function askName(orig,cur,save){const box=document.createElement('div');box.clas
   box.querySelector('b').textContent=orig;const inp=box.querySelector('input');inp.value=cur||'';inp.placeholder=orig;
   const ok=()=>{save(inp.value.trim());closeModal();};
   const [no,yes]=box.querySelectorAll('button');no.onclick=closeModal;yes.onclick=ok;inp.onkeydown=e=>{if(e.key==='Enter')ok();};
-  openModal('이름 바꾸기',box);setTimeout(()=>inp.focus(),0);}
+  openModal('이름 수정',box);setTimeout(()=>inp.focus(),0);}
 function renameTrainer(tr){askName(`트레이너 ${tr.no}`,NICK[tr.id],v=>{if(v)NICK[tr.id]=v;else delete NICK[tr.id];store.set('pokeoffice.nicks',NICK);renderSide();log('session',`${tr.town.name}·${tr.no} 이름 → ${tname(tr)}`);});}
 // 위쪽 탭 = 프로젝트(작업 폴더). 이름은 화면에서만 바뀌고, 삭제하면 그 폴더의 트레이너가 모두 화면에서 사라져요
 function renameTown(name){askName(name,TNICK[name],v=>{if(v)TNICK[name]=v;else delete TNICK[name];store.set('pokeoffice.townNicks',TNICK);renderTowns();log('session',`${name} 탭 이름 → ${townLabel(name)}`);});}
@@ -1001,7 +1009,7 @@ function tipFor(p){const t=towns.get(active);const o=hitEntity(p);
   const jobs=t?t.jobs.filter(j=>HAB[j.role]&&HAB[j.role].room===k).length:0;const trs=t?[...t.trainers.values()].filter(tr=>inRoom(k,tr)).length:0;
   let st=jobs?`작업 ${jobs}건 진행 중`:'조용해요';if(trs)st+=` · 트레이너 ${trs}명`;
   if(k==='test'&&t&&t.lastTest)st+=` · 마지막 ${t.lastTest.label} ${t.lastTest.ok?'통과':'실패'}`;
-  return `<b>${r.ko}</b><span class="st" style="background:${r.tag}">${r.stage}</span><br>${esc(ROOM_LABEL_TOOLS[k]||'')}<br>${st}<small>클릭하면 자세히 보기</small>`;}
+  return `<b>${r.ko}</b><span class="st" style="background:${r.tag}">${r.stage}</span><br>${esc(r.desc||'')}${ROOM_LABEL_TOOLS[k]?`<br><span style="opacity:.75">${esc(ROOM_LABEL_TOOLS[k])}</span>`:''}<br>${st}<small>클릭하면 자세히 보기</small>`;}
 cv.addEventListener('pointerleave',()=>{hoverRoom=null;showTip(null,'');});
 cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){const o=hitEntity(p);hoverRoom=o?null:(roomAt(p)||null);cv.style.cursor=o?'grab':hoverRoom?'pointer':'';showTip(e,tipFor(p));return;}showTip(null,'');
   grab.p=p;if(!grab.on&&Math.hypot(p.x-grab.home.x,p.y-grab.home.y+12)>4)grabStart();if(grab.on)grabMove(p);});
