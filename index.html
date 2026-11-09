@@ -46,6 +46,7 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .side{display:flex;flex-direction:column;gap:16px}
 .wrow{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 8px;border-radius:10px;background:var(--panel2);margin-bottom:6px}
 .wrow canvas{width:40px;height:40px;image-rendering:pixelated;background:#3a3348;border-radius:8px}
+.wrow canvas.face{box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
 .wrow .txt{min-width:0}.wrow .a{font-size:14px}.wrow .b{font-size:12px;color:var(--quiet);margin-top:2px}
 .wrow .a,.wrow .b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .more{flex:none;width:20px;height:20px;padding:0;border-width:2px;border-radius:6px;box-shadow:none;font-size:10px;line-height:1;color:var(--quiet);background:transparent}
@@ -146,6 +147,9 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .ctxm button:hover,.ctxm button:focus{background:#ece6d2;outline:0}.ctxm button:hover::before,.ctxm button:focus::before{content:'▶';position:absolute;left:7px;font-size:11px;top:9px}
 .ctxm button.del{color:#c03028}
 .renm{display:flex;flex-direction:column;gap:10px}.renm input{font-size:15px}.renm .row{display:flex;gap:8px;justify-content:flex-end}
+.logtags{display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px;border-bottom:3px dashed var(--line)}
+.logtags button{padding:3px 10px;font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;border-width:2px;border-radius:999px;box-shadow:none;background:var(--panel2)}
+.logtags button small{font-weight:400;color:var(--quiet);font-size:11px}.logtags button.on{background:#1f3a2a;border-color:var(--leaf)}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -492,7 +496,7 @@ function drawLabels(){ctx.font=`${7*S}px "DotGothic16", sans-serif`;ctx.textBase
   Object.entries(ROOMS).forEach(([k,r])=>{if(!r.ko)return;const x=px(r.x0*T+3),y=px((r.y0-r.face)*T+2),w=ctx.measureText(r.ko).width+8*S,on=k===hoverRoom;
     ctx.fillStyle=on?'#f8d030':'rgba(30,22,16,.88)';ctx.fillRect(x,y,w,10*S);ctx.fillStyle=on?'#2a1e18':'#f4ead8';ctx.fillText(r.ko,x+4*S,y+8*S);});}
 // 마우스를 올린 방: 살짝 밝게 + 모서리 선택 커서가 깜빡깜빡 (포켓몬 메뉴 커서 느낌)
-let hoverRoom=null;
+let hoverRoom=null,hoverEnt=null;
 function drawHover(){if(!hoverRoom||grab)return;const r=ROOMS[hoverRoom];const x0=r.x0*T,y0=(r.y0-r.face)*T,x1=(r.x1+1)*T,y1=(r.y1+1)*T;
   ctx.fillStyle='rgba(255,248,220,.10)';ctx.fillRect(px(x0),px(y0),(x1-x0)*S,(y1-y0)*S);
   const k=Math.floor(now.t/260)%2?1:3,L=9;
@@ -646,6 +650,15 @@ $('mClose').onclick=closeModal;$('modal').addEventListener('click',e=>{if(e.targ
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('modal').hidden)closeModal();});
 // 잘린 글은 오른쪽 작은 ▾ 버튼 → 가운데 팝업으로 전체 보기
 const moreBtn=()=>{const b=document.createElement('button');b.className='more';b.hidden=true;b.title='더보기';b.textContent='▾';return b;};
+// 목록 줄에 방 호버와 같은 게임풍 설명 상자를 붙여요 (html은 마우스를 움직일 때마다 새로 만들어 최신 상태)
+function tipOn(el,html){el.dataset.tip='1';el.addEventListener('mousemove',e=>showTip(e,html()));el.addEventListener('mouseleave',()=>showTip(null,''));}
+// 목록이 다시 그려져 줄이 사라지면 상자도 닫히게
+document.addEventListener('mousemove',e=>{if(!$('tip').hidden&&!e.target.closest('[data-tip],#office'))showTip(null,'');});
+// 트레이너 얼굴: 스프라이트 윗부분만 잘라 크게
+function faceThumb(c,img){const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,c.width,c.height);
+  const side=Math.min(img.width,img.height*.62),sx=(img.width-side)/2,sy=custom.trainer?0:img.height*.04;x.drawImage(img,sx,sy,side,side,2,4,c.width-4,c.height-4);}
+const stateText=tr=>tr.lounge&&tr.state==='idle'?'휴게실에서 휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'승인 / 답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
+const cut=(v,n)=>{v=String(v||'');return v.length>n?v.slice(0,n)+'…':v;};
 function fitMore(d,title,body,raw){const btn=d.querySelector('.more');if(!btn)return;
   const shown=[...d.querySelectorAll('.txt > div')];const over=shown.some(x=>x.scrollWidth>x.clientWidth+1);
   const longer=raw&&!shown.some(x=>x.textContent.includes(raw));btn.hidden=!(over||longer);
@@ -697,22 +710,25 @@ function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)re
   {const n=jobs.length+subs.length;$('workSum').textContent=n?`${n}개의 작업 중`:'';}
   if(!jobs.length&&!subs.length){el.innerHTML=`<div class="empty">지금 작업 중인 포켓몬이 없어요.<br><span style="font-size:12px">(Claude Code가 동작할 경우<br>자동으로 포켓몬이 일을 시작해요.)</span></div>`;return;}
   el.innerHTML='';
-  const row=(img,a,b,room,since,tr,state,full)=>{const d=document.createElement('div');d.className='wrow';
+  const row=(img,a,b,room,since,tr,state,full,tip)=>{const d=document.createElement('div');d.className='wrow';if(tip)tipOn(d,tip);
     const c=document.createElement('canvas');c.width=48;c.height=48;thumb(c,img);d.appendChild(c);
     const m=document.createElement('div');m.className='txt';m.innerHTML=`<div class="a"></div><div class="b"></div>`;m.querySelector('.a').textContent=a;
     const bb=m.querySelector('.b');if(room)bb.innerHTML=`<span class="room" style="background:${ROOMCOL[room]||'#666'}">${ROOMS[room].ko}</span>`;bb.append(b);d.appendChild(m);
-    const tm=document.createElement('div');tm.className='tm';tm.innerHTML=`${fmtSec(now.t-since)}<br><span style="color:var(--quiet)">${tr?'S'+tr.no:''}</span>`;if(state)tm.title=state;d.appendChild(moreBtn());d.appendChild(tm);el.appendChild(d);fitMore(d,a,full?`${state?state+'\n\n':''}${full}`:'',full);};
+    const tm=document.createElement('div');tm.className='tm';tm.innerHTML=`${fmtSec(now.t-since)}<br><span style="color:var(--quiet)">${tr?'S'+tr.no:''}</span>`;d.appendChild(moreBtn());d.appendChild(tm);el.appendChild(d);fitMore(d,a,full?`${state?state+'\n\n':''}${full}`:'',full);};
   jobs.forEach(j=>{const st=j.ok===undefined?(j.mon&&j.mon.state==='work'?'일하는 중':'가는 중'):(j.ok?'완료':'실패');
-    row(monImg(j.role,0),`${nameOf(j.role)} · ${j.tool} ${j.label}`,` ${st}${j.detail&&j.detail!==j.rawTool?' — '+j.detail:''}`,HAB[j.role].room,j.start,j.tr,st,j.full||j.detail);});
-  subs.forEach(mo=>{const tr=t.trainers.get(mo.subOf);row(monImg('sub',0),`${nameOf('sub')} · 서브에이전트`,` 조사 중 — ${mo.job.detail}`,null,mo.born||now.t,tr,'조사 중',mo.job.full||mo.job.detail);});}
+    row(monImg(j.role,0),`${nameOf(j.role)} · ${j.tool} ${j.label}`,` ${st}${j.detail&&j.detail!==j.rawTool?' — '+j.detail:''}`,HAB[j.role].room,j.start,j.tr,st,j.full||j.detail,
+      ()=>{const s2=j.ok===undefined?(j.mon&&j.mon.state==='work'?'일하는 중':'가는 중'):(j.ok?'완료':'실패');const room=HAB[j.role].room;
+        return `<b>${esc(nameOf(j.role))}</b><span class="st" style="background:${j.ok===false?'#e85a5a':ROOMS[room].tag}">${s2}</span><br>${esc(j.tool)} ${esc(j.label)} / ${ROOMS[room].ko} / ${fmtSec(now.t-j.start)}<br><span style="opacity:.75">${esc(cut(j.full||j.detail,60))}</span><br>${esc(tname(j.tr))}`;});});
+  subs.forEach(mo=>{const tr=t.trainers.get(mo.subOf);row(monImg('sub',0),`${nameOf('sub')} · 서브에이전트`,` 조사 중 — ${mo.job.detail}`,null,mo.born||now.t,tr,'조사 중',mo.job.full||mo.job.detail,
+      ()=>`<b>${esc(nameOf('sub'))}</b><span class="st" style="background:${ROOMS.plan.tag}">조사 중</span><br>서브에이전트 / 기획실 / ${fmtSec(now.t-(mo.born||now.t))}<br><span style="opacity:.75">${esc(cut(mo.job.full||mo.job.detail,60))}</span>${tr?`<br>${esc(tname(tr))}`:''}`);});}
 function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!el)return;
   if(!t||!t.trainers.size){el.innerHTML=`<div class="empty">${LIVE?'Claude Code를 실행하면 트레이너가 출근해요.':'세션이 없어요.'}</div>`;return;}
   el.innerHTML='';const g=t.growth;
-  t.trainers.forEach(tr=>{if(tr.state==='leave')return;const c=document.createElement('div');c.className='wrow';c.dataset.sid=tr.id;c.title='우클릭: 이름 수정 · 삭제';
+  t.trainers.forEach(tr=>{if(tr.state==='leave')return;const c=document.createElement('div');c.className='wrow';c.dataset.sid=tr.id;tipOn(c,()=>{const n=t.jobs.filter(j=>j.tr===tr).length;return `<b>${esc(tname(tr))}</b><span class="st" style="background:${HATS[tr.color][0]}">${stateText(tr)}</span>${tr.prompt?`<br>"${esc(cut(tr.prompt,60))}"`:''}<br><span style="opacity:.75">세션 ID ${esc(String(tr.id).slice(0,8))} / 작업 ${n}개</span>`;});
     const st=tr.lounge&&tr.state==='idle'?'휴게실에서 휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'⚠ 승인·답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
-    c.innerHTML=`<div class="sw" style="width:40px;height:40px;background:${HATS[tr.color][0]}">S${tr.no}</div><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${tr.recap?'<button class="recapb" title="recap 보기">!</button>':''}${jobs?jobs+'건':''}</div>`;
-    if(tr.recap)c.querySelector('.recapb').onclick=()=>{openRecap(tr);renderSessions();};
+    c.innerHTML=`<canvas class="face" width="48" height="48" style="background:${HATS[tr.color][0]}"></canvas><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${tr.recap?'<button class="recapb" title="recap 보기">!</button>':''}${jobs?jobs+'건':''}</div>`;
+    faceThumb(c.querySelector('canvas'),trainerImg(tr.color,0));if(tr.recap)c.querySelector('.recapb').onclick=()=>{openRecap(tr);renderSessions();};
     c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ID: ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
   if(t.todos.length){const d=document.createElement('div');d.style.cssText='margin-top:8px;font-size:13px;line-height:1.7';d.innerHTML='<div class="muted" style="font-size:12px">화이트보드 할 일</div>';
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
@@ -739,8 +755,14 @@ const logRow=(e,full)=>{const d=document.createElement('div');d.innerHTML=`<span
   if(!full)d.onclick=()=>openModal(`${e.kind} · ${e.ts}`,e.text);return d;};
 function log(kind,text,cls){const e={ts:clock(),kind,text:String(text||''),cls:cls||kind};LOGS.unshift(e);if(LOGS.length>500)LOGS.pop();
   const el=$('logList');el.prepend(logRow(e));while(el.children.length>LOG_SHOW)el.lastChild.remove();$('logAll').textContent=`전체 기록 보기 (${LOGS.length})`;}
-$('logAll').onclick=()=>{const box=document.createElement('div');box.className='log';LOGS.forEach(e=>box.appendChild(logRow(e,true)));
-  if(!LOGS.length)box.innerHTML='<p class="muted">아직 기록이 없어요.</p>';openModal('활동 기록',box);};
+// 전체 기록: 위쪽 태그를 누르면 그 종류만 보여요 (claude 를 누르면 Claude가 한 말만)
+$('logAll').onclick=()=>{const box=document.createElement('div');box.className='log';const bar=document.createElement('div');bar.className='logtags';let pick=null;
+  const kinds=[];LOGS.forEach(e=>{if(!kinds.includes(e.kind))kinds.push(e.kind);});
+  const draw=()=>{const list=pick?LOGS.filter(e=>e.kind===pick):LOGS;box.innerHTML='';list.forEach(e=>box.appendChild(logRow(e,true)));
+    if(!list.length)box.innerHTML='<p class="muted">아직 기록이 없어요.</p>';bar.querySelectorAll('button').forEach(b=>b.classList.toggle('on',(b.dataset.k||null)===pick));$('mBody').scrollTop=0;};
+  const chip=(k,label,n)=>{const b=document.createElement('button');if(k)b.dataset.k=k;b.innerHTML=`<span class="${k?'k '+k:''}"></span> <small>${n}</small>`;b.firstChild.textContent=label;b.onclick=()=>{pick=k;draw();};bar.appendChild(b);};
+  chip(null,'전체',LOGS.length);kinds.forEach(k=>chip(k,k,LOGS.filter(e=>e.kind===k).length));
+  openModal('활동 기록',box,{extra:LOGS.length?bar:null});draw();};
 
 // alerts
 let alertFor=null;const waiters=new Map();
@@ -768,7 +790,10 @@ function buildPack(){const el=$('teamList');if(!el)return;el.innerHTML='';[...RO
   t.innerHTML=`<div class="n"></div><div class="t">${r==='trainer'?'세션마다 한 명 / 기획실':`${DEF[r].tool} <span class="room" style="background:${ROOMCOL[HAB[r].room]||'#666'}">${HAB[r].name}</span>`}</div><div class="t">${r!=='trainer'?(st.count?`일한 횟수 ${st.count} / Lv${5+Math.floor(st.count/3)}`:'아직 출근 전'):''}</div>`;
   t.querySelector('.n').textContent=(r==='trainer'?(cfg.trainer.name||'트레이너'):nameOf(r))+(custom[r]&&cfg[r].dex?` #${cfg[r].dex}`:'');row.appendChild(t);
   const b=document.createElement('button');b.className='chg';b.textContent='변경';const off=SRC.mode==='none'||r==='trainer';b.disabled=off;if(off){b.style.opacity=.4;b.title=r==='trainer'?'트레이너는 PNG 파일로 넣어 주세요':'내려받은 앱(npm start)에서만 바꿀 수 있어요';}
-  b.onclick=e=>{e.stopPropagation();openPicker(r);};row.appendChild(b);row.onclick=()=>{if(r!=='trainer')select(r);};el.appendChild(row);});}
+  b.onclick=e=>{e.stopPropagation();openPicker(r);};row.appendChild(b);row.onclick=()=>{if(r!=='trainer')select(r);};
+  tipOn(row,()=>{if(r==='trainer')return `<b>${esc(cfg.trainer.name||'트레이너')}</b><span class="st" style="background:${ROOMS.plan.tag}">기획실</span><br>Claude Code 세션마다 한 명씩 출근해요<br><span style="opacity:.75">지시를 내리고 포켓몬을 보내요</span>`;
+    const st2=dexStats[r],room=HAB[r].room;return `<b>${esc(nameOf(r))}${custom[r]&&cfg[r].dex?` #${cfg[r].dex}`:''}</b><span class="st" style="background:${ROOMS[room].tag}">${ROOMS[room].ko}</span><br>담당 ${esc(DEF[r].tool)}<br><span style="opacity:.75">${st2.count?`일한 횟수 ${st2.count} / Lv${5+Math.floor(st2.count/3)}${st2.last?` / 최근 ${esc(cut(st2.last,24))}`:''}`:'아직 출근 전'}</span>`;});
+  el.appendChild(row);});}
 let pickRole=null;
 function openPicker(r){pickRole=r;const bar=document.createElement('div');bar.className='dexbar';
   bar.innerHTML=`<input id="pickQ" type="text" placeholder="이름 또는 번호 (피카츄, gengar, 94)"><label class="muted" style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" id="pickShiny">이로치</label><span class="muted" id="pickCount"></span>`;
@@ -839,8 +864,9 @@ function connectLive(){if(!SRC.server)return;const es=new EventSource('stream');
 
 // ───────── render
 const px=n=>Math.round(n)*S;let TS=1;
-function drawImg(img,x,y,face=1,{cu=false,scale=1,alpha=1,rot=0}={}){let w,h;if(cu){const k=Math.min(.5,26/img.height);w=img.width*k*S*scale;h=img.height*k*S*scale;}else{w=18*S*SP*scale;h=18*S*SP*scale;}
-  ctx.save();ctx.globalAlpha=alpha;if(rot){ctx.translate(px(x),px(y)-h+S*3);ctx.rotate(rot);if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,0,w,h);}else{ctx.translate(px(x),px(y));if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,-h+S*3,w,h);}ctx.restore();return h/S;}
+function drawImg(img,x,y,face=1,{cu=false,scale=1,alpha=1,rot=0,glow=false}={}){let w,h;if(cu){const k=Math.min(.5,26/img.height);w=img.width*k*S*scale;h=img.height*k*S*scale;}else{w=18*S*SP*scale;h=18*S*SP*scale;}
+  ctx.save();ctx.globalAlpha=alpha;if(glow)ctx.filter=`brightness(1.15) drop-shadow(0 0 ${S}px #fff) drop-shadow(0 0 ${S}px #f8d030)`;if(rot){ctx.translate(px(x),px(y)-h+S*3);ctx.rotate(rot);if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,0,w,h);}else{ctx.translate(px(x),px(y));if(face<0)ctx.scale(-1,1);ctx.drawImage(img,-w/2,-h+S*3,w,h);}ctx.restore();return h/S;}
+function hoverRing(x,y){const k=.55+.45*Math.abs(Math.sin(now.t/180));ctx.save();ctx.globalAlpha=k;ctx.strokeStyle='#f8d030';ctx.lineWidth=S;ctx.beginPath();ctx.ellipse(px(x),px(y)+S,11*S,3.4*S,0,0,7);ctx.stroke();ctx.restore();}
 function struggle(x,y,h){ctx.fillStyle='#fff';const k=Math.floor(now.t/90)%2;for(const sd of[-1,1]){ctx.fillRect(px(x+sd*(11+k)),px(y-h*.6),2*S,S);ctx.fillRect(px(x+sd*(12-k)),px(y-h*.6+3),2*S,S);}}
 function shadow(x,y,r=8){ctx.fillStyle='rgba(60,90,30,.28)';ctx.beginPath();ctx.ellipse(px(x),px(y)+S,r*S,2.2*S,0,0,7);ctx.fill();}
 function bubble(x,y,text,col='#fff',off=30){ctx.font=`${7*S*TS}px 'DotGothic16','Apple SD Gothic Neo',sans-serif`;const t=text.length>14?text.slice(0,13)+'…':text;
@@ -913,7 +939,7 @@ function draw(dt){
     town.mons.forEach(mo=>ents.push({y:mo.y,draw:()=>{const busy=mo.state==='work'||mo.state==='notice';const moving=mo.path.length>0;
       const f=mo.grabbed?Math.floor(now.t/70)%2:busy?Math.floor(now.t/140)%2:moving?Math.floor(now.t/160)%2:Math.floor(now.t/700)%2;const cu=!!custom[mo.role];const sc=mo.helper&&mo.role!=='sub'?.82:1;
       const hop=mo.grabbed?0:moving?(cu?Math.abs(Math.sin(now.t/90))*2:f):busy&&cu?Math.abs(Math.sin(now.t/110))*2:0;
-      if(mo.grabbed)shadow(mo.x,mo.y+10,5*sc);else shadow(mo.x,mo.y,8*sc);if(mo.state==='throw')return;const k=mo.state==='appear'?Math.max(.1,1-mo.t/320):mo.state==='recall'?Math.max(.03,mo.t/420):mo.state==='vanish'?Math.max(.05,mo.t/350):1;const h=drawImg(monImg(mo.role,f),mo.x,mo.y-hop,cu?-mo.face:mo.face,{cu,scale:sc*k,alpha:mo.state==='bye'?Math.max(0,mo.t/700):1,rot:mo.grabbed?Math.sin(now.t/55)*.32:0});if(mo.grabbed){struggle(mo.x,mo.y,h);return;}
+      if(mo.grabbed)shadow(mo.x,mo.y+10,5*sc);else{shadow(mo.x,mo.y,8*sc);if(hoverEnt===mo)hoverRing(mo.x,mo.y);}if(mo.state==='throw')return;const k=mo.state==='appear'?Math.max(.1,1-mo.t/320):mo.state==='recall'?Math.max(.03,mo.t/420):mo.state==='vanish'?Math.max(.05,mo.t/350):1;const h=drawImg(monImg(mo.role,f),mo.x,mo.y-hop,cu?-mo.face:mo.face,{cu,scale:sc*k,alpha:mo.state==='bye'?Math.max(0,mo.t/700):1,rot:mo.grabbed?Math.sin(now.t/55)*.32:0,glow:hoverEnt===mo});if(mo.grabbed){struggle(mo.x,mo.y,h);return;}
       if(mo.state==='work')moveFx(mo.role,mo,now.t);
       if(mo.state==='appear'&&mo.t<300){ctx.font=`${7*S}px 'Press Start 2P'`;ctx.fillStyle='#e8a020';ctx.fillText('!',px(mo.x-2),px(mo.y-h-4));}
       if(mo.state==='nap'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#6b8ab0';ctx.fillText('z',px(mo.x+8),px(mo.y-h-((now.t/220)%5)));}
@@ -927,7 +953,7 @@ function draw(dt){
       const st={cheer:['완료!','#e2f7e4'],sad:['실패…','#ffe1e1'],return:['복귀 중…','#fff'],subdone:['복귀 중…','#fff']}[mo.state];
       if(st)bubble(mo.x,mo.y,st[0],st[1],h);}}));
     town.trainers.forEach(tr=>ents.push({y:tr.y,draw:()=>{const moving=tr.path.length>0&&!tr.grabbed;const f=tr.grabbed?Math.floor(now.t/70)%2:moving?Math.floor(now.t/130)%2:tr.state==='wait'?Math.floor(now.t/90)%2:Math.floor(now.t/800)%2;
-      if(tr.grabbed)shadow(tr.x,tr.y+10,5);else shadow(tr.x,tr.y);const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-(!tr.grabbed&&(moving||tr.state==='wait')?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer,rot:tr.grabbed?Math.sin(now.t/55)*.32:0});if(tr.grabbed){struggle(tr.x,tr.y,h);return;}
+      if(tr.grabbed)shadow(tr.x,tr.y+10,5);else{shadow(tr.x,tr.y);if(hoverEnt===tr)hoverRing(tr.x,tr.y);}const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-(!tr.grabbed&&(moving||tr.state==='wait')?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer,rot:tr.grabbed?Math.sin(now.t/55)*.32:0,glow:hoverEnt===tr});if(tr.grabbed){struggle(tr.x,tr.y,h);return;}
       ctx.fillStyle=HATS[tr.color][0];ctx.font=`${4*S}px 'Press Start 2P'`;ctx.fillText('S'+tr.no,px(tr.x-5),px(tr.y+9));
       if(tr.state==='sleep'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#6b8ab0';ctx.fillText('z',px(tr.x+8),px(tr.y-h-((now.t/220)%5)));}
       if(tr.bubble)bubble(tr.x,tr.y,tr.bubble,tr.bubble==='!'?'#ffe066':'#fff',h+4);
@@ -1015,14 +1041,14 @@ const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function tipFor(p){const t=towns.get(active);const o=hitEntity(p);
   if(o&&o.role){const j=o.job;const st={work:'일하는 중',go:'가는 중',return:'복귀 중',cheer:'완료!',sad:'실패…',subwork:'조사 중',wander:'산책 중',rest:'쉬는 중',nap:'낮잠 중'}[o.state]||'';
     return `<b>${esc(nameOf(o.role))}</b>${st?`<span class="st" style="background:#5a7ad0">${st}</span>`:''}${j?`<br>${esc(j.tool||'')} ${esc(j.label||'서브에이전트')} — ${esc(String(j.detail||'').slice(0,40))}`:''}<small>꾹 눌러서 잡기</small>`;}
-  if(o)return `<b>${esc(tname(o))}</b><span class="st" style="background:${HATS[o.color][0]}">${o.lounge&&o.state==='idle'?'휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'승인·답변 필요',sleep:'쉬는 중'}[o.state]||'')}</span>${o.prompt?`<br>"${esc(o.prompt.slice(0,40))}${o.prompt.length>40?'…':''}"`:''}<small>${o.recap?'<b style="color:#5ad87a">! recap</b> 클릭해서 보기 · ':''}꾹 눌러서 잡기 · 우클릭 메뉴</small>`;
+  if(o)return `<b>${esc(tname(o))}</b><span class="st" style="background:${HATS[o.color][0]}">${o.lounge&&o.state==='idle'?'휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'승인·답변 필요',sleep:'쉬는 중'}[o.state]||'')}</span>${o.prompt?`<br>"${esc(o.prompt.slice(0,40))}${o.prompt.length>40?'…':''}"`:''}<small>${o.recap?'<b style="color:#5ad87a">! recap</b> 클릭해서 보기 / ':''}꾹 눌러서 잡기</small>`;
   const k=roomAt(p);if(!k)return '';const r=ROOMS[k];
   const jobs=t?t.jobs.filter(j=>HAB[j.role]&&HAB[j.role].room===k).length:0;const trs=t?[...t.trainers.values()].filter(tr=>inRoom(k,tr)).length:0;
   let st=jobs?`작업 ${jobs}건 진행 중`:'조용해요';if(trs)st+=` · 트레이너 ${trs}명`;
   if(k==='test'&&t&&t.lastTest)st+=` · 마지막 ${t.lastTest.label} ${t.lastTest.ok?'통과':'실패'}`;
   return `<b>${r.ko}</b><span class="st" style="background:${r.tag}">${r.stage}</span><br><span style="white-space:nowrap">${esc(r.desc||'')}</span>${ROOM_LABEL_TOOLS[k]?`<br><span style="opacity:.75">${esc(ROOM_LABEL_TOOLS[k])}</span>`:''}<br>${st}<small>클릭하면 자세히 보기</small>`;}
-cv.addEventListener('pointerleave',()=>{hoverRoom=null;showTip(null,'');});
-cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){const o=hitEntity(p);hoverRoom=o?null:(roomAt(p)||null);cv.style.cursor=o?'grab':hoverRoom?'pointer':'';showTip(e,tipFor(p));return;}showTip(null,'');
+cv.addEventListener('pointerleave',()=>{hoverRoom=null;hoverEnt=null;showTip(null,'');});
+cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){const o=hitEntity(p);hoverEnt=o||null;hoverRoom=o?null:(roomAt(p)||null);cv.style.cursor=o?'grab':hoverRoom?'pointer':'';showTip(e,tipFor(p));return;}showTip(null,'');
   grab.p=p;if(!grab.on&&Math.hypot(p.x-grab.home.x,p.y-grab.home.y+12)>4)grabStart();if(grab.on)grabMove(p);});
 function grabEnd(){if(!grab)return;clearTimeout(grab.t);const {o,home,on,p}=grab;grab=null;cv.style.cursor='';if(!on){if(o.recap&&!o.role)openRecap(o);else openRoomAt(p);return;}o.grabbed=false;
   if(!walkable(Math.floor(o.x/T),Math.floor((o.y-1)/T))){o.x=home.x;o.y=home.y;}
