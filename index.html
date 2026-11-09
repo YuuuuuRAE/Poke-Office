@@ -180,6 +180,7 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .tktabs{display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px;border-bottom:3px dashed var(--line)}
 .tktabs button{padding:3px 10px;font-size:12px;border-width:2px;border-radius:999px;box-shadow:none;background:var(--panel2)}
 .tsum{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mdl{display:inline-block;margin:0 2px 0 7px;padding:1px 6px;border-radius:5px;font-size:11px;font-weight:700;line-height:1.35;color:#fff;vertical-align:1px}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -607,7 +608,8 @@ function handleEvent(ev){
       while(town.mons.some(m=>m.role==='sub'&&m.subOf===tr.id&&!['return','recall','vanish','subdone','bye'].includes(m.state)))endSub(town,tr);
       endTurn(tr,ev.why==='interrupt'?'interrupt':'stop');tr.state='idle';tr.bubble=null;clearAlert(tr);log('stop',`${town.name}·${tr.no} ${ev.why==='interrupt'?'중단됨':'Stop'}`);toLounge(town,tr);}
       ticker(town,`${tname(tr)}: 작업 끝! 휴게실에서 쉬면서 다음 지시를 기다려요`,tr);break;
-    case 'usage':{const at=ev.at||Date.now(),fresh=(ev.input||0)+(ev.cacheWrite||0),ctx=fresh+(ev.cacheRead||0);
+    case 'usage':{if(ev.model&&!/^</.test(ev.model)&&tr.model!==ev.model){tr.model=ev.model;if(town.name===active)renderSessions();}
+      const at=ev.at||Date.now(),fresh=(ev.input||0)+(ev.cacheWrite||0),ctx=fresh+(ev.cacheRead||0);
       tr.tok=tr.tok||{out:0,fresh:0};tr.tok.out+=ev.output||0;tr.tok.fresh+=fresh;tr.ctx=ctx;
       const list=town.turns.filter(u=>u.tr===tr&&u.wall0<=at+1500),u=list[list.length-1];
       if(u){u.tok.out+=ev.output||0;u.tok.fresh+=fresh;u.tok.ctx=ctx;u.tok.calls++;}
@@ -702,6 +704,10 @@ document.addEventListener('mousemove',e=>{if(!$('tip').hidden&&!e.target.closest
 // 트레이너 얼굴: 스프라이트 윗부분만 잘라 크게
 function faceThumb(c,img){const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.clearRect(0,0,c.width,c.height);
   const side=Math.min(img.width,img.height*.62),sx=(img.width-side)/2,sy=custom.trainer?0:img.height*.04;x.drawImage(img,sx,sy,side,side,2,4,c.width-4,c.height-4);}
+// 모델 ID를 짧은 이름으로: claude-opus-5-5 → Opus 5.5
+function modelTag(id){const m=String(id).match(/(opus|sonnet|haiku|fable)-(\d+)(?:-(\d+))?/i);
+  if(!m)return{n:String(id).replace(/^claude-/,''),c:'#4a4a62'};const f=m[1].toLowerCase();
+  return{n:f[0].toUpperCase()+f.slice(1)+' '+m[2]+(m[3]&&m[3].length<=2?'.'+m[3]:''),c:{opus:'#7a5ad0',sonnet:'#3a7ad0',haiku:'#3a9a6a',fable:'#c08a20'}[f]};}
 const stateText=tr=>tr.lounge&&tr.state==='idle'?'휴게실에서 휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'승인 / 답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
 const cut=(v,n)=>{v=String(v||'');return v.length>n?v.slice(0,n)+'…':v;};
 function fitMore(d,title,body,raw){const btn=d.querySelector('.more');if(!btn)return;
@@ -861,7 +867,7 @@ function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!e
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
     c.innerHTML=`<canvas class="face" width="48" height="48" style="background:${HATS[tr.color][0]}"></canvas><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${tr.recap?'<button class="recapb" title="recap 보기">!</button>':''}${jobs?jobs+'건':''}</div>`;
     faceThumb(c.querySelector('canvas'),trainerImg(tr.color,0));if(tr.recap)c.querySelector('.recapb').onclick=()=>{openRecap(tr);renderSessions();};
-    c.querySelector('.a').textContent=`${tname(tr)} · ${st}`;c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ID: ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
+    {const a=c.querySelector('.a');a.textContent=tname(tr);if(tr.model){const m=modelTag(tr.model);const b=document.createElement('span');b.className='mdl';b.style.background=m.c;b.textContent=m.n;b.title=tr.model;a.appendChild(b);}a.append(` · ${st}`);}c.querySelector('.b').textContent=tr.prompt?`"${tr.prompt}"`:`세션 ID: ${String(tr.id).slice(0,8)}`;el.appendChild(c);fitMore(c,`${tname(tr)} · ${st}`,tr.prompt?`보낸 프롬프트\n\n${tr.prompt}`:'',tr.prompt);});
   if(t.todos.length){const d=document.createElement('div');d.style.cssText='margin-top:8px;font-size:13px;line-height:1.7';d.innerHTML='<div class="muted" style="font-size:12px">화이트보드 할 일</div>';
     t.todos.forEach(td=>{const x=document.createElement('div');x.textContent=(td.s==='done'?'☑ ':td.s==='doing'?'▶ ':'☐ ')+td.text;if(td.s==='done')x.style.color='var(--quiet)';d.appendChild(x);});el.appendChild(d);}}
 setInterval(()=>{if(!paused){renderWork();renderTimeline();}},1000);
