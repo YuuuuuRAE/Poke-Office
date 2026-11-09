@@ -282,11 +282,11 @@ const ITEM={};(()=>{const mk=(fn)=>{const g=new Grid(8,8);fn(g);g.outline();retu
 const ROLES=['read','search','edit','test','bash','web','mcp','sub'];
 const DEF={
   read:{name:'후로',tool:'Read',dex:65,suggest:'후딘'},
-  search:{name:'디글',tool:'Grep · Glob',dex:50,suggest:'디그다'},
-  edit:{name:'비보',tool:'Edit · Write',dex:235,suggest:'루브도'},
-  test:{name:'체크봇',tool:'테스트 · 빌드',dex:81,suggest:'코일'},
+  search:{name:'디글',tool:'Grep / Glob',dex:50,suggest:'디그다'},
+  edit:{name:'비보',tool:'Edit / Write',dex:235,suggest:'루브도'},
+  test:{name:'체크봇',tool:'테스트 / 빌드',dex:81,suggest:'코일'},
   bash:{name:'옥터미',tool:'Bash',dex:137,suggest:'폴리곤'},
-  web:{name:'스위텔',tool:'WebSearch · WebFetch',dex:225,suggest:'딜리버드'},
+  web:{name:'스위텔',tool:'WebSearch / WebFetch',dex:225,suggest:'딜리버드'},
   mcp:{name:'플러고',tool:'MCP 도구',dex:479,suggest:'로토무'},
   sub:{name:'해치',tool:'서브에이전트 (Agent)',dex:132,suggest:'메타몽'},
 };
@@ -765,7 +765,7 @@ const spriteUrl=(id,sh)=>SRC.base+(sh?'shiny/':'')+id+'.png';
 function buildPack(){const el=$('teamList');if(!el)return;el.innerHTML='';[...ROLES,'trainer'].forEach(r=>{const row=document.createElement('div');row.className='card'+(selected===r?' sel':'');
   const c=document.createElement('canvas');c.width=48;c.height=48;thumb(c,r==='trainer'?trainerImg(0,0):monImg(r,0));row.appendChild(c);
   const st=dexStats[r];const t=document.createElement('div');
-  t.innerHTML=`<div class="n"></div><div class="t">${r==='trainer'?'세션마다 한 명 · 기획실':`${DEF[r].tool} · <span class="room" style="background:${ROOMCOL[HAB[r].room]||'#666'}">${HAB[r].name}</span>`}</div><div class="t">${r!=='trainer'?(st.count?`일한 횟수 ${st.count} · Lv${5+Math.floor(st.count/3)}`:'아직 출근 전'):''}</div>`;
+  t.innerHTML=`<div class="n"></div><div class="t">${r==='trainer'?'세션마다 한 명 / 기획실':`${DEF[r].tool} <span class="room" style="background:${ROOMCOL[HAB[r].room]||'#666'}">${HAB[r].name}</span>`}</div><div class="t">${r!=='trainer'?(st.count?`일한 횟수 ${st.count} / Lv${5+Math.floor(st.count/3)}`:'아직 출근 전'):''}</div>`;
   t.querySelector('.n').textContent=(r==='trainer'?(cfg.trainer.name||'트레이너'):nameOf(r))+(custom[r]&&cfg[r].dex?` #${cfg[r].dex}`:'');row.appendChild(t);
   const b=document.createElement('button');b.className='chg';b.textContent='변경';const off=SRC.mode==='none'||r==='trainer';b.disabled=off;if(off){b.style.opacity=.4;b.title=r==='trainer'?'트레이너는 PNG 파일로 넣어 주세요':'내려받은 앱(npm start)에서만 바꿀 수 있어요';}
   b.onclick=e=>{e.stopPropagation();openPicker(r);};row.appendChild(b);row.onclick=()=>{if(r!=='trainer')select(r);};el.appendChild(row);});}
