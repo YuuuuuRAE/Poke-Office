@@ -5,6 +5,7 @@
 //   GET  /api/health    → { sprites, names }
 //   GET  /api/names     → [{ id, ko, en }]
 //   GET  /api/sessions  → 최근에 쓰인 Claude Code 세션 (대화 기록 폴더에서 찾음)
+//   GET  /api/tokens?session=ID → 그 세션에서 토큰이 어디에 쓰였는지 분석 (tokens.mjs)
 //   GET  /api/limits    → 5시간·주간 사용 한도 (상태줄이 저장한 ~/.claude/statusline-cache.json 이 있을 때만)
 //   POST /events        → hook.mjs 가 보내는 OfficeEvent
 //   GET  /stream        → 화면이 구독하는 Server-Sent Events (대화 기록에서 찾은 recap · 중단도 여기로)
@@ -14,6 +15,7 @@ import { homedir } from 'node:os';
 import { dirname, join, normalize, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { analyzeSession } from './tokens.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.env.POKE_OFFICE_PORT || 4321);
@@ -166,6 +168,9 @@ const server = createServer((req, res) => {
   }
   if (req.method === 'GET' && p === '/api/health') {
     return send(res, 200, { ok: true, sprites: existsSync(join(SPR_DIR, '25.png')), names: existsSync(NAMES) });
+  }
+  if (req.method === 'GET' && p === '/api/tokens') {
+    try { return send(res, 200, analyzeSession(PROJECTS, url.searchParams.get('session'))); } catch (e) { return send(res, 500, { error: e.message }); }
   }
   if (req.method === 'GET' && p === '/api/limits') return send(res, 200, readLimits());
   if (req.method === 'GET' && p === '/api/sessions') {

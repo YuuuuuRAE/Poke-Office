@@ -30,6 +30,7 @@
     "index.html",
     "install.cmd",
     "server.mjs",
+    "tokens.mjs",
     "hook.mjs",
     "scripts/",
     "README.md"

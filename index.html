@@ -164,6 +164,18 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .turn .ts{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;font-size:12px;color:var(--quiet)}
 .turn .tf{font-size:12px;color:#c8b898;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tmore{width:100%;padding:5px;font-size:12px;border-width:2px;box-shadow:none}
+.tkstat{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 12px}
+.tkstat div{background:var(--panel2);border-radius:10px;padding:7px 8px;font-size:11.5px;color:var(--quiet);text-align:center;word-break:keep-all}.tkstat b{display:block;font-size:16px;color:var(--ink)}
+.tksec{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--mint);margin:16px 0 6px}
+.tkrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px;align-items:baseline}
+.tkrow .l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tkrow .r{white-space:nowrap;color:var(--ink);font-variant-numeric:tabular-nums}
+.tkrow small{grid-column:1/-1;color:var(--quiet);font-size:11.5px;word-break:keep-all}
+.tkrow .bar{grid-column:1/-1;height:5px;background:#3a3348;border-radius:3px;overflow:hidden}.tkrow .bar i{display:block;height:100%}
+.tkhint{background:#2a3324;border-radius:10px;padding:8px 10px;margin-bottom:6px;font-size:13px;line-height:1.55;word-break:keep-all}
+.tkstack{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:1px;margin:2px 0 6px}.tkstack i{min-width:2px}
+.tktabs{display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px;border-bottom:3px dashed var(--line)}
+.tktabs button{padding:3px 10px;font-size:12px;border-width:2px;border-radius:999px;box-shadow:none;background:var(--panel2)}
+.tsum{display:flex;justify-content:space-between;align-items:center;gap:8px}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -719,11 +731,56 @@ function turnDetail(u){const st=turnStats(u),[b]=turnBadge(u),pct=v=>Math.round(
   if(u.items.length){lines.push('','실행한 순서');u.items.forEach(j=>{const s2=j.cancel?'중단':j.ok===undefined?'진행 중':j.ok?'완료':'실패';
     lines.push(`  +${fmtSec(j.start-u.t0)}  ${j.tool} ${j.label}  ${String(j.detail||'').slice(0,60)}  ${s2}${j.endAt!=null?` (${fmtDur(j.endAt-j.start)})`:''}`);});}
   return lines.join('\n');}
+// ───────── 토큰 분석: 서버가 대화 기록 전체를 읽어 어디서 토큰이 많이 드는지 계산 (tokens.mjs)
+const TK={};
+async function getTokens(sid,fresh){const c=TK[sid];if(c&&!fresh&&Date.now()-c.at<8000)return c.data;
+  const d=await(await fetch('api/tokens?session='+encodeURIComponent(sid),{cache:'no-store'})).json();TK[sid]={at:Date.now(),data:d};return d;}
+const tkLabel=x=>x.target?`${x.label} ${x.target}`:x.label;
+async function turnTokens(u){const title=$('mTitle').textContent;let d;try{d=await getTokens(u.tr.id);}catch{return;}
+  if($('modal').hidden||$('mTitle').textContent!==title||d.error)return;
+  const a=u.wall0-1500,b=(u.wall1||Date.now())+1500,list=d.items.filter(x=>x.ts>=a&&x.ts<=b).sort((x,y)=>y.tokens+y.reread-(x.tokens+x.reread)).slice(0,8);
+  if(!list.length)return;const pre=document.createElement('pre');pre.className='mtext';pre.style.marginTop='14px';
+  pre.textContent='이 요청에서 컨텍스트를 키운 것\n'+list.map(x=>`  ${clipS(tkLabel(x),46)}  +${fmtK(x.tokens)}${x.reread?` (이후 다시 읽은 양 ${fmtK(x.reread)})`:''}`).join('\n');$('mBody').appendChild(pre);}
+const clipS=(v,n)=>{v=String(v||'');return v.length>n?v.slice(0,n)+'…':v;};
+function tkHints(d){const H=[],ctx=d.ctxNow||1;
+  const big=d.top.find(x=>x.cat==='tool'&&x.tokens>=6000);
+  if(big)H.push(`<b>${esc(clipS(tkLabel(big),50))}</b> 결과가 한 번에 ${fmtK(big.tokens)} 들어왔고, 이후 ${big.rereads}번 다시 읽혀 ${fmtK(big.reread)}가 쓰였어요. 출력을 줄이거나(head / tail, offset / limit) 서브에이전트에 맡기면 아낄 수 있어요.`);
+  if(d.baseline){const mcp=d.baseline.parts.filter(p=>p.label.startsWith('MCP')),m=mcp.reduce((n,p)=>n+p.tokens,0);
+    if(m/d.baseline.tokens>.08)H.push(`MCP 툴 정의가 기본 컨텍스트의 ${Math.round(m/d.baseline.tokens*100)}%(${fmtK(m)})예요. 매 응답마다 깔려요. 이 작업에 안 쓰는 MCP 서버를 끄면 줄어요.`);
+    const init=d.baseline.parts.find(p=>p.label.startsWith('처음 주입'));if(init&&init.tokens>8000)H.push(`처음 주입된 내용(CLAUDE.md / 메모리 / 환경)이 ${fmtK(init.tokens)}예요. 길면 매 응답 비용이 늘어요.`);}
+  const rp=d.repeats.find(r=>r.count>=3);if(rp)H.push(`<b>${esc(clipS(rp.label,50))}</b>을(를) ${rp.count}번 반복했어요(합계 ${fmtK(rp.tokens)}). 한 번 읽은 결과를 재사용하게 하면 줄어요.`);
+  const call=d.now.find(p=>p.label==='Claude 툴 호출');if(call&&call.tokens/ctx>.15)H.push(`Claude가 툴에 넘긴 내용(파일 쓰기 / 스크립트 등)이 컨텍스트의 ${Math.round(call.tokens/ctx*100)}%예요. 큰 파일은 통째로 쓰기보다 Edit로 필요한 부분만 고치면 줄어요.`);
+  const inj=d.now.find(p=>p.label.startsWith('주입된'));if(inj&&inj.tokens/ctx>.1)H.push(`리마인더 / 훅 / 첨부로 주입된 내용이 컨텍스트의 ${Math.round(inj.tokens/ctx*100)}%예요. 훅 출력이나 자동 첨부를 줄일 수 있는지 보세요.`);
+  if(d.cacheMisses.length)H.push(`캐시가 ${d.cacheMisses.length}번 처음부터 다시 만들어졌어요(합계 ${fmtK(d.cacheMisses.reduce((n,c)=>n+c.tokens,0))}). 오래 쉬었다 이어 가면 생겨요.`);
+  return H.slice(0,5);}
+function tkRows(list,total,color){return list.map(x=>`<div class="tkrow"><span class="l" title="${esc(x.label)}">${esc(x.label)}</span><span class="r">${fmtK(x.tokens)}${total?` <small style="display:inline;color:var(--quiet)">${Math.round(x.tokens/total*100)}%</small>`:''}</span>${total?`<div class="bar"><i style="width:${Math.max(1,x.tokens/total*100)}%;background:${color(x)}"></i></div>`:''}</div>`).join('');}
+const tkColor=x=>/^툴 결과/.test(x.label)?'#4aa8d9':/^Claude/.test(x.label)?'#ff9f7a':/^기본|^시스템|툴 정의/.test(x.label)?'#8a7ad0':/^MCP/.test(x.label)?'#d97aa8':/^주입/.test(x.label)?'#e8a030':/압축/.test(x.label)?'#7a7a8a':'#5fbf62';
+async function openTokens(tr,keepTabs){const t=tr.town,box=document.createElement('div');box.innerHTML='<p class="muted">대화 기록을 분석하는 중…</p>';
+  let tabs=null;if(t.trainers.size>1){tabs=document.createElement('div');tabs.className='tktabs';t.trainers.forEach(x=>{const b=document.createElement('button');b.textContent=tname(x);if(x===tr)b.className='on';b.onclick=()=>openTokens(x);tabs.appendChild(b);});}
+  openModal(`토큰 분석 / ${tname(tr)}`,box,{extra:tabs});let d;
+  try{d=await getTokens(tr.id,true);}catch{box.innerHTML='<p class="muted">분석하지 못했어요. 서버를 다시 켜 보세요.</p>';return;}
+  if(d.error){box.innerHTML=`<p class="muted">${esc(d.error)}</p>`;return;}
+  const subOut=d.subagents.reduce((n,a)=>n+a.out,0),subFresh=d.subagents.reduce((n,a)=>n+a.fresh,0);
+  let h=`<div class="tkstat"><div><b>${d.calls}</b>응답</div><div><b>${fmtK(d.ctxNow)}</b>지금 컨텍스트</div><div><b>${fmtK(d.cacheRead)}</b>캐시에서 다시 읽은 양</div>
+    <div><b>${fmtK(d.out)}</b>출력 (생각 ${fmtK(d.thinking)})</div><div><b>${fmtK(d.fresh)}</b>새 입력</div><div><b>${d.subagents.length?fmtK(subOut+subFresh):'없음'}</b>서브에이전트</div></div>`;
+  const hints=tkHints(d);if(hints.length)h+=`<div class="tksec">줄일 수 있는 곳</div>`+hints.map(x=>`<div class="tkhint">${x}</div>`).join('');
+  const tot=d.now.reduce((n,p)=>n+p.tokens,0)||1;
+  h+=`<div class="tksec">지금 컨텍스트 구성</div><div class="tkstack">${d.now.map(p=>`<i style="flex:${p.tokens};background:${tkColor(p)}" title="${esc(p.label)} ${fmtK(p.tokens)}"></i>`).join('')}</div>`+tkRows(d.now,tot,tkColor);
+  if(d.baseline)h+=`<div class="tksec">기본 컨텍스트 ${fmtK(d.baseline.tokens)} (매 응답마다 깔림)</div>`+tkRows(d.baseline.parts,d.baseline.tokens,tkColor);
+  if(d.top.length)h+=`<div class="tksec">많이 쓴 곳 TOP 10</div><p class="muted" style="margin:0 0 4px">한 번 들어온 내용은 이후 응답마다 다시 읽혀요. 들어온 크기와 다시 읽힌 양을 같이 봐요.</p>`+d.top.slice(0,10).map(x=>`<div class="tkrow"><span class="l" title="${esc(tkLabel(x))}">${esc(tkLabel(x))}</span><span class="r">+${fmtK(x.tokens)}</span><small>${x.ts?wallClock(x.ts).slice(0,5)+' / ':''}이후 ${x.rereads}번 다시 읽음 / ${fmtK(x.reread)}</small></div>`).join('');
+  if(d.repeats.length)h+=`<div class="tksec">반복된 작업</div>`+d.repeats.slice(0,6).map(r=>`<div class="tkrow"><span class="l" title="${esc(r.label)}">${esc(r.label)}</span><span class="r">${r.count}번 / ${fmtK(r.tokens)}</span></div>`).join('');
+  if(d.cacheMisses.length)h+=`<div class="tksec">캐시를 다시 만든 때</div>`+d.cacheMisses.map(c=>`<div class="tkrow"><span class="l">${c.ts?new Date(c.ts).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}${c.gapMin!=null?` / ${c.gapMin}분 쉰 뒤`:''}</span><span class="r">${fmtK(c.tokens)}</span></div>`).join('');
+  if(d.subagents.length)h+=`<div class="tksec">서브에이전트</div>`+d.subagents.slice(0,8).map(a=>`<div class="tkrow"><span class="l" title="${esc(a.label)}">${esc(a.label)}</span><span class="r">출력 ${fmtK(a.out)} / 새 입력 ${fmtK(a.fresh)}</span><small>응답 ${a.calls}번 / 캐시 읽기 ${fmtK(a.cacheRead)}</small></div>`).join('');
+  if(d.toolDefs.length)h+=`<div class="tksec">툴 정의 크기 TOP 10</div>`+tkRows(d.toolDefs.slice(0,10).map(x=>({label:x.name,tokens:x.tokens})),0);
+  h+=`<p class="muted" style="margin-top:14px">값은 응답마다 늘어난 컨텍스트를 그 사이에 들어온 내용에 글자 수 비율로 나눈 근사치예요. 어느 작업이 컨텍스트를 키웠는지 찾는 용도로 보세요.</p>`;
+  box.innerHTML=h;}
 function renderTurns(){const el=$('turns'),t=towns.get(active);
-  if(!t||!t.turns.length){el.innerHTML='<div class="empty">아직 받은 요청이 없어요.<br><span style="font-size:12px">Claude Code에 프롬프트를 보내면 요청마다 카드가 생겨요.</span></div>';return;}
+  if(!t||!t.turns.length){el.innerHTML=`<div class="empty">아직 받은 요청이 없어요.<br><span style="font-size:12px">Claude Code에 프롬프트를 보내면 요청마다 카드가 생겨요.</span>${SRC.server&&t&&t.trainers.size?'<br><button class="mini" id="tkOpen" style="margin-top:8px">이 세션 토큰 분석</button>':''}</div>`;
+    if($('tkOpen'))$('tkOpen').onclick=()=>openTokens(t.trainers.values().next().value);return;}
   const all=[...t.turns].reverse(),list=TL_ALL?all:all.slice(0,6);
   const out=t.turns.reduce((n,u)=>n+u.tok.out,0),fresh=t.turns.reduce((n,u)=>n+u.tok.fresh,0);
-  el.innerHTML=`<div class="tsum">요청 <b>${t.turns.length}</b>개${out||fresh?` / 출력 <b>${fmtK(out)}</b> / 새 입력 <b>${fmtK(fresh)}</b> 토큰`:''}</div>`;
+  el.innerHTML=`<div class="tsum"><span>요청 <b>${t.turns.length}</b>개${out||fresh?` / 출력 <b>${fmtK(out)}</b> / 새 입력 <b>${fmtK(fresh)}</b> 토큰`:''}</span>${SRC.server?'<button class="mini" id="tkOpen">토큰 분석</button>':''}</div>`;
+  if(SRC.server)$('tkOpen').onclick=()=>{const tr=(curTurn(t.turns[t.turns.length-1].tr)||t.turns[t.turns.length-1]).tr;openTokens(tr);};
   list.forEach(u=>{const st=turnStats(u),[bl,bc]=turnBadge(u),d=document.createElement('div');d.className='turn'+(u.t1==null?' run':'');
     const counts=GROUPS.map(([k,n])=>{const c=u.items.filter(j=>roomOfItem(j)===k).length;return c?`${n} ${c}`:'';}).filter(Boolean).join(' / ')||'툴 없이 답변';
     const seg=[...GROUPS.map(([k])=>st.by[k]?`<i style="flex:${st.by[k]};background:${ROOMS[k].tag}"></i>`:''),st.wait?`<i class="wait" style="flex:${st.wait}"></i>`:'',st.think?`<i class="think" style="flex:${st.think}"></i>`:''].join('');
@@ -733,7 +790,7 @@ function renderTurns(){const el=$('turns'),t=towns.get(active);
     faceThumb(d.querySelector('canvas'),trainerImg(u.tr.color,0));
     tipOn(d,()=>{const s3=turnStats(u),pc=v=>Math.round(v/s3.total*100);const parts=GROUPS.filter(([k])=>s3.by[k]).map(([k,n])=>`${n}&nbsp;${pc(s3.by[k])}%`);if(s3.wait)parts.push(`대기&nbsp;${fmtSec(s3.wait)}`);if(s3.think)parts.push(`생각&nbsp;${pc(s3.think)}%`);
       return `<b>${esc(tname(u.tr))}</b><span class="st" style="background:${turnBadge(u)[1]}">${turnBadge(u)[0]}</span><br>${parts.join(' / ')||'아직 기록이 없어요'}${u.tok.calls?`<br><span style="opacity:.75">컨텍스트 ${fmtK(u.tok.ctx)} / 응답 ${u.tok.calls}번</span>`:''}`;});
-    d.onclick=()=>{showTip(null,'');openModal(`${tname(u.tr)} 요청 ${wallClock(u.wall0)}`,turnDetail(u));};el.appendChild(d);});
+    d.onclick=()=>{showTip(null,'');openModal(`${tname(u.tr)} 요청 ${wallClock(u.wall0)}`,turnDetail(u));turnTokens(u);};el.appendChild(d);});
   if(all.length>6){const b=document.createElement('button');b.className='tmore';b.textContent=TL_ALL?'최근 6개만 보기':`이전 요청 ${all.length-6}개 더 보기`;b.onclick=()=>{TL_ALL=!TL_ALL;renderTurns();};el.appendChild(b);}}
 function renderTimeline(){$('turns').hidden=TLMODE!=='turn';$('tl').hidden=TLMODE==='turn';$('tlRange').hidden=TLMODE==='turn';
   const lg=$('tlLegend');if(lg.dataset.m!==TLMODE){lg.dataset.m=TLMODE;lg.innerHTML=[['research','조사'],['dev','수정'],['test','검증'],['term','실행/외부'],['plan','서브에이전트']].map(([k,n])=>`<span><i style="background:${ROOMS[k].tag}"></i>${n}</span>`).join('')+
@@ -1077,7 +1134,7 @@ function openMenu(e,title,items){e.preventDefault();showTip(null,'');const m=$('
   const hd=document.createElement('div');hd.className='hd';hd.textContent=title;m.appendChild(hd);
   items.forEach(([label,fn,cls])=>{const b=document.createElement('button');b.textContent=label;if(cls)b.className=cls;b.onclick=()=>{closeCtx();fn();};m.appendChild(b);});
   m.hidden=false;const w=m.offsetWidth,h=m.offsetHeight;m.style.left=Math.min(e.clientX,innerWidth-w-10)+'px';m.style.top=Math.min(e.clientY,innerHeight-h-10)+'px';m.querySelector('button').focus();}
-function openCtx(e,tr){openMenu(e,tname(tr),[...(tr.recap?[['recap 보기',()=>openRecap(tr)]]:[]),['이름 수정',()=>renameTrainer(tr)],['삭제',()=>closeTrainer(tr),'del']]);}
+function openCtx(e,tr){openMenu(e,tname(tr),[...(tr.recap?[['recap 보기',()=>openRecap(tr)]]:[]),...(SRC.server?[['토큰 분석',()=>openTokens(tr)]]:[]),['이름 수정',()=>renameTrainer(tr)],['삭제',()=>closeTrainer(tr),'del']]);}
 function closeCtx(){$('ctxm').hidden=true;}
 document.addEventListener('pointerdown',e=>{if(!$('ctxm').hidden&&!e.target.closest('#ctxm'))closeCtx();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx();});
