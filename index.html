@@ -63,6 +63,14 @@ button.px{font-family:'Press Start 2P',monospace;font-size:9px}
 .tabs{display:flex;border-bottom:3px dashed var(--line)}
 .tabs button{flex:1;border:0;box-shadow:none;border-radius:0;background:transparent;font-family:'Press Start 2P',monospace;font-size:12.5px;padding:12px 2px;color:var(--quiet)}
 .tabs button.on{color:var(--mint);background:var(--panel2)}
+/* 탭 · 변경 버튼 호버: 게임 메뉴처럼 ▶ 커서가 깜빡이고 살짝 떠올라요 */
+.tabs button{position:relative;transition:color .15s,background .15s,box-shadow .15s}
+.tabs button:not(.on):hover{color:var(--ink);background:rgba(255,255,255,.05);box-shadow:inset 0 -3px 0 #c4a874}
+.tabs button:hover::before{content:'▶';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:9px;color:#f8d030;animation:blink .8s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+button.chg{transition:transform .12s,box-shadow .12s,background .12s,color .12s,border-color .12s}
+button.chg:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 0 var(--shadow);background:#1f3a2a;border-color:var(--leaf);color:var(--mint)}
+button.chg:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--shadow)}
 .tab{display:none;padding:10px 12px}.tab.on{display:block}
 .card{display:grid;grid-template-columns:50px 1fr auto;gap:10px;align-items:center;padding:8px;border:3px solid transparent;border-radius:12px;margin-bottom:6px;background:var(--panel2)}
 .card.sel{border-color:var(--leaf)}.card.busy{border-color:var(--amber)}
@@ -756,7 +764,7 @@ function buildPack(){const el=$('teamList');if(!el)return;el.innerHTML='';[...RO
   const st=dexStats[r];const t=document.createElement('div');
   t.innerHTML=`<div class="n"></div><div class="t">${r==='trainer'?'세션마다 한 명 · 기획실':`${DEF[r].tool} · <span class="room" style="background:${ROOMCOL[HAB[r].room]||'#666'}">${HAB[r].name}</span>`}</div><div class="t">${r!=='trainer'?(st.count?`일한 횟수 ${st.count} · Lv${5+Math.floor(st.count/3)}`:'아직 출근 전'):''}</div>`;
   t.querySelector('.n').textContent=(r==='trainer'?(cfg.trainer.name||'트레이너'):nameOf(r))+(custom[r]&&cfg[r].dex?` #${cfg[r].dex}`:'');row.appendChild(t);
-  const b=document.createElement('button');b.textContent='변경';const off=SRC.mode==='none'||r==='trainer';b.disabled=off;if(off){b.style.opacity=.4;b.title=r==='trainer'?'트레이너는 PNG 파일로 넣어 주세요':'내려받은 앱(npm start)에서만 바꿀 수 있어요';}
+  const b=document.createElement('button');b.className='chg';b.textContent='변경';const off=SRC.mode==='none'||r==='trainer';b.disabled=off;if(off){b.style.opacity=.4;b.title=r==='trainer'?'트레이너는 PNG 파일로 넣어 주세요':'내려받은 앱(npm start)에서만 바꿀 수 있어요';}
   b.onclick=e=>{e.stopPropagation();openPicker(r);};row.appendChild(b);row.onclick=()=>{if(r!=='trainer')select(r);};el.appendChild(row);});}
 let pickRole=null;
 function openPicker(r){pickRole=r;const bar=document.createElement('div');bar.className='dexbar';
