@@ -596,7 +596,7 @@ function grow(town,job){if(job.role==='test')town.lastTest={ok:true,label:job.la
 
 // monster brain
 function updateMon(town,mo,dt){const h=HAB[mo.role];mo.t-=dt;
-  if(mo.back){if(['work','cheer','sad','nap'].includes(mo.state)){if(moveAlong(mo,.1*dt))mo.back=false;}else mo.back=false;}
+  if(mo.back){if(['work','cheer','sad','nap','subwork'].includes(mo.state)){if(moveAlong(mo,.1*dt))mo.back=false;}else mo.back=false;}
   switch(mo.state){
     case 'wander':mo.idle+=dt;if(mo.pause>0){mo.pause-=dt;break;}
       if(moveAlong(mo,.024*dt)){mo.pause=rand(900,3800);
@@ -926,8 +926,8 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)catchUp();
 function frame(ts){TS=Math.min(1.9,Math.max(1,900/(cv.clientWidth||900)));if(!Number.isFinite(last))last=ts;if(ts-last>100)catchUp(ts);const raw=Math.max(0,Math.min(50,ts-last))||0;last=ts;const dt=paused?0:raw*speed;step(dt);draw(dt);}
 function step(dt){now.t+=dt;
   const due=timers.filter(x=>x.at<=now.t);if(due.length){for(const d of due)timers.splice(timers.indexOf(d),1);due.forEach(d=>d.res());}
-  towns.forEach(town=>{town.mons.forEach(mo=>{if(!mo.grabbed)updateMon(town,mo,dt);});town.mons=town.mons.filter(m=>!m.dead);
-    town.trainers.forEach(tr=>{if(tr.path.length&&!tr.grabbed){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
+  towns.forEach(town=>{town.mons.forEach(mo=>{if(mo.fun)updateFun(town,mo,dt);else if(!mo.grabbed)updateMon(town,mo,dt);});town.mons=town.mons.filter(m=>!m.dead);
+    town.trainers.forEach(tr=>{if(tr.fun)updateFun(town,tr,dt);if(tr.path.length&&!tr.grabbed&&!tr.fun){const p=tr.path[0];if(stepTo(tr,p.x,p.y,.055*dt)){tr.path.shift();if(!tr.path.length){const r=tr.arrive;tr.arrive=null;r&&r();}}}
       if(LIVE&&tr.state!=='leave'&&now.t-tr.last>AWAY_MS){leaveTrainer(town,tr,'퇴근!');ticker(town,`${tname(tr)}: 30분 동안 소식이 없어서 퇴근했어요. 프롬프트를 보내면 다시 출근해요.`,tr);log('session',`${town.name} · 세션 ${tr.no} 30분 동안 신호 없음 → 퇴근`);renderTowns();if(town.name===active)renderSide();return;}
       if((tr.state==='idle'||tr.state==='think')&&now.t-tr.last>IDLE_MS()&&!town.jobs.some(j=>j.tr===tr)){tr.state='sleep';tr.bubble=null;renderTowns();if(town.name===active)renderSide();}});});}
 function draw(dt){
@@ -936,10 +936,12 @@ function draw(dt){
   if(town){
     drawBoards(town);drawHover();drawLabels();
     const ents=[];
-    town.mons.forEach(mo=>ents.push({y:mo.y,draw:()=>{const busy=mo.state==='work'||mo.state==='notice';const moving=mo.path.length>0;
+    town.mons.forEach(mo=>ents.push({y:mo.y,draw:()=>{const busy=mo.state==='work'||mo.state==='notice';const moving=mo.path.length>0&&!mo.fun;
       const f=mo.grabbed?Math.floor(now.t/70)%2:busy?Math.floor(now.t/140)%2:moving?Math.floor(now.t/160)%2:Math.floor(now.t/700)%2;const cu=!!custom[mo.role];const sc=mo.helper&&mo.role!=='sub'?.82:1;
       const hop=mo.grabbed?0:moving?(cu?Math.abs(Math.sin(now.t/90))*2:f):busy&&cu?Math.abs(Math.sin(now.t/110))*2:0;
-      if(mo.grabbed)shadow(mo.x,mo.y+10,5*sc);else{shadow(mo.x,mo.y,8*sc);if(hoverEnt===mo)hoverRing(mo.x,mo.y);}if(mo.state==='throw')return;const k=mo.state==='appear'?Math.max(.1,1-mo.t/320):mo.state==='recall'?Math.max(.03,mo.t/420):mo.state==='vanish'?Math.max(.05,mo.t/350):1;const h=drawImg(monImg(mo.role,f),mo.x,mo.y-hop,cu?-mo.face:mo.face,{cu,scale:sc*k,alpha:mo.state==='bye'?Math.max(0,mo.t/700):1,rot:mo.grabbed?Math.sin(now.t/55)*.32:0,glow:hoverEnt===mo});if(mo.grabbed){struggle(mo.x,mo.y,h);return;}
+      if(mo.grabbed)shadow(mo.x,mo.y+10,5*sc);else{shadow(mo.x,mo.y,8*sc);if(hoverEnt===mo)hoverRing(mo.x,mo.y);}if(mo.state==='throw')return;const k=mo.state==='appear'?Math.max(.1,1-mo.t/320):mo.state==='recall'?Math.max(.03,mo.t/420):mo.state==='vanish'?Math.max(.05,mo.t/350):1;if(mo.grabbed&&!mo.ballAt&&now.t-mo.grabSince>6000)mo.ballAt=now.t;
+      if(mo.grabbed&&mo.ballAt){const bt=now.t-mo.ballAt;if(bt<900){ctx.save();ctx.translate(px(mo.x),px(mo.y-10));ctx.rotate(Math.sin(now.t/60)*.45);ctx.drawImage(BALL,-4*S,-4*S,8*S,8*S);ctx.restore();return;}if(!mo.ballPop){mo.ballPop=true;town.fx.push({type:'flash',x:mo.x,y:mo.y-10,t:0});}}
+      const h=drawImg(monImg(mo.role,f),mo.x,mo.y-hop-funLift(mo),cu?-mo.face:mo.face,{cu,scale:sc*k,alpha:mo.state==='bye'?Math.max(0,mo.t/700):1,rot:mo.grabbed?Math.sin(now.t/55)*.32:funSpin(mo),glow:hoverEnt===mo});if(mo.grabbed){struggle(mo.x,mo.y,h);grabMarks(mo,h);return;}if(mo.fun){funMarks(mo,h);return;}
       if(mo.state==='work')moveFx(mo.role,mo,now.t);
       if(mo.state==='appear'&&mo.t<300){ctx.font=`${7*S}px 'Press Start 2P'`;ctx.fillStyle='#e8a020';ctx.fillText('!',px(mo.x-2),px(mo.y-h-4));}
       if(mo.state==='nap'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#6b8ab0';ctx.fillText('z',px(mo.x+8),px(mo.y-h-((now.t/220)%5)));}
@@ -952,8 +954,8 @@ function draw(dt){
       if(mo.state==='subwork')bubble(mo.x,mo.y,mo.job.detail,'#fff7d6',h+6);
       const st={cheer:['완료!','#e2f7e4'],sad:['실패…','#ffe1e1'],return:['복귀 중…','#fff'],subdone:['복귀 중…','#fff']}[mo.state];
       if(st)bubble(mo.x,mo.y,st[0],st[1],h);}}));
-    town.trainers.forEach(tr=>ents.push({y:tr.y,draw:()=>{const moving=tr.path.length>0&&!tr.grabbed;const f=tr.grabbed?Math.floor(now.t/70)%2:moving?Math.floor(now.t/130)%2:tr.state==='wait'?Math.floor(now.t/90)%2:Math.floor(now.t/800)%2;
-      if(tr.grabbed)shadow(tr.x,tr.y+10,5);else{shadow(tr.x,tr.y);if(hoverEnt===tr)hoverRing(tr.x,tr.y);}const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-(!tr.grabbed&&(moving||tr.state==='wait')?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer,rot:tr.grabbed?Math.sin(now.t/55)*.32:0,glow:hoverEnt===tr});if(tr.grabbed){struggle(tr.x,tr.y,h);return;}
+    town.trainers.forEach(tr=>ents.push({y:tr.y,draw:()=>{const moving=tr.path.length>0&&!tr.grabbed&&!tr.fun;const f=tr.grabbed?Math.floor(now.t/70)%2:moving?Math.floor(now.t/130)%2:tr.state==='wait'?Math.floor(now.t/90)%2:Math.floor(now.t/800)%2;
+      if(tr.grabbed)shadow(tr.x,tr.y+10,5);else{shadow(tr.x,tr.y);if(hoverEnt===tr)hoverRing(tr.x,tr.y);}const h=drawImg(trainerImg(tr.color,f),tr.x,tr.y-funLift(tr)-(!tr.grabbed&&(moving||tr.state==='wait')?f:0),(tr.faceUntil&&now.t<tr.faceUntil)?tr.face:moving?tr.face:tr.lounge?1:(tr.x>5.5*T?-1:1),{cu:!!custom.trainer,rot:tr.grabbed?Math.sin(now.t/55)*.32:funSpin(tr),glow:hoverEnt===tr});if(tr.grabbed){struggle(tr.x,tr.y,h);grabMarks(tr,h);return;}if(tr.fun){funMarks(tr,h);return;}
       ctx.fillStyle=HATS[tr.color][0];ctx.font=`${4*S}px 'Press Start 2P'`;ctx.fillText('S'+tr.no,px(tr.x-5),px(tr.y+9));
       if(tr.state==='sleep'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#6b8ab0';ctx.fillText('z',px(tr.x+8),px(tr.y-h-((now.t/220)%5)));}
       if(tr.bubble)bubble(tr.x,tr.y,tr.bubble,tr.bubble==='!'?'#ffe066':'#fff',h+4);
@@ -966,6 +968,9 @@ function draw(dt){
         ctx.strokeStyle=`rgba(255,220,220,${Math.max(0,.9-k7)})`;ctx.lineWidth=S;ctx.stroke();if(k7>.75){ctx.save();ctx.translate(px(a.x+(a.face||1)*4),px(a.y-16));ctx.drawImage(BALL,-3*S,-3*S,6*S,6*S);ctx.restore();}return k7<1;}
       if(f.type==='poof'){const k4=f.t/450;for(let i=0;i<8;i++){const a=i*Math.PI/4;ctx.fillStyle=`rgba(255,255,255,${Math.max(0,.9-k4)})`;ctx.beginPath();ctx.arc(px(f.x+Math.cos(a)*(4+k4*12)),px(f.y+Math.sin(a)*(3+k4*8)),px(3*(1-k4)+1),0,7);ctx.fill();}return k4<1;}
       if(f.type==='fly'){const k3=Math.min(1,f.t/700);const x=f.x0+(f.x1-f.x0)*k3,y=f.y0+(f.y1-f.y0)*k3-Math.sin(k3*Math.PI)*30;ctx.drawImage(ITEM[f.role==='sub'?'read':f.role],px(x-4),px(y-4),8*S,8*S);if(k3>=1){town.fx.push({type:'pop',x:f.x1,y:f.y1,t:0});return false;}return true;}
+      if(f.type==='bonk'){const k8=f.t/750;ctx.save();ctx.globalAlpha=Math.max(0,1-k8);ctx.font=`${8*S}px 'DotGothic16','Apple SD Gothic Neo',sans-serif`;ctx.textAlign='center';ctx.lineWidth=2*S;ctx.strokeStyle='#2a1e18';const yy=px(f.y-6-k8*8);ctx.strokeText('쿵!',px(f.x),yy);ctx.fillStyle='#ffe066';ctx.fillText('쿵!',px(f.x),yy);
+        for(let i=0;i<6;i++){const a=i*Math.PI/3;ctx.fillRect(px(f.x+Math.cos(a)*(6+k8*10)),px(f.y+Math.sin(a)*(4+k8*7)),2*S,2*S);}ctx.restore();return k8<1;}
+      if(f.type==='heart'){const k9=f.t/900;drawHeart(f.x+Math.sin(f.t/120)*2,f.y-k9*14,Math.max(0,1-k9));return k9<1;}
       if(f.type==='confetti'){const k2=f.t/1600;for(let i=0;i<18;i++){ctx.fillStyle=['#ff8fb0','#ffd84a','#6cc4ff','#7cd06a'][i%4];ctx.fillRect(px(f.x+Math.cos(i*1.7)*k2*40),px(f.y-20+Math.sin(i*2.3)*k2*16+k2*k2*30),2*S,2*S);}return k2<1;}return false;});
   }else{drawLabels();ctx.fillStyle='rgba(255,250,235,.85)';ctx.fillRect(0,0,BW*S,BH*S);ctx.fillStyle='#6b4a2a';ctx.font=`${9*S}px 'DotGothic16',sans-serif`;ctx.textAlign='center';ctx.fillText('세션이 시작되면 마을이 생겨요',BW*S/2,BH*S/2);ctx.textAlign='left';}
   dialog(dt);
@@ -1030,11 +1035,53 @@ function hitEntity(p){const t=towns.get(active);if(!t)return null;let best=null,
   t.mons.forEach(m=>{if(!GRABBABLE.includes(m.state))return;const d=Math.hypot(m.x-p.x,m.y-12-p.y);if(d<bd){bd=d;best=m;}});
   t.trainers.forEach(tr=>{if(tr.state==='leave'||tr.state==='arrive')return;let d=Math.hypot(tr.x-p.x,tr.y-12-p.y);if(tr.recap)d=Math.min(d,Math.hypot(tr.x-p.x,tr.y-34-p.y));if(d<bd){bd=d;best=tr;}});return best;}
 let grab=null;
-function grabStart(){if(!grab||grab.on)return;grab.on=true;grab.o.grabbed=true;cv.style.cursor='grabbing';grabMove(grab.p);}
+// ───────── 잡기 놀이: 던지기 · 방마다 반응 · 오래 잡으면 화남 · 포켓몬끼리 인사 · 트레이너가 쓰다듬기
+const canStand=(x,y)=>{const tx=Math.floor(x/T),ty=Math.floor((y-1)/T);return x>T&&x<BW-T&&ty>0&&ty<MH&&walkable(tx,ty);};
+function goHome(o,home){if(!canStand(o.x,o.y)){o.x=home.x;o.y=home.y;}const dest=o.path.length?o.path[o.path.length-1]:home;
+  o.path=Math.hypot(dest.x-o.x,dest.y-o.y)>2?findPath(o.x,o.y,dest.x,dest.y):[];if(o.role)o.back=o.path.length>0;}
+// 내려놓은 자리에 따라 반응
+// 소파 · 탁자처럼 설 수 없는 칸에 놓으면 가까운 바닥으로 살짝 옮겨요
+function nearStand(o){if(canStand(o.x,o.y))return true;for(let r=4;r<=20;r+=4)for(let a=0;a<8;a++){const x=o.x+Math.cos(a*Math.PI/4)*r,y=o.y+Math.sin(a*Math.PI/4)*r;if(canStand(x,y)){o.x=x;o.y=y;return true;}}return false;}
+function land(town,o,home){if(!nearStand(o)){o.x=home.x;o.y=home.y;return goHome(o,home);}
+  if(o.role&&town){const tr=o.owner||(o.job&&o.job.tr);
+    if(tr&&town.trainers.has(tr.id)&&!tr.grabbed&&!tr.fun&&tr.state!=='leave'&&Math.hypot(tr.x-o.x,tr.y-o.y)<22){
+      o.fun={type:'pet',t:1800,home};tr.fun={type:'pet',t:1800,home:{x:tr.x,y:tr.y}};tr.face=o.x<tr.x?-1:1;tr.faceUntil=now.t+1800;o.face=tr.x<o.x?-1:1;return;}
+    const m2=town.mons.find(m=>m!==o&&!m.grabbed&&!m.fun&&GRABBABLE.includes(m.state)&&Math.hypot(m.x-o.x,m.y-o.y)<16);
+    if(m2){const love=m2.role===o.role;o.fun={type:'greet',t:1500,home,love};m2.fun={type:'greet',t:1500,home:{x:m2.x,y:m2.y},love};o.face=m2.x<o.x?-1:1;m2.face=-o.face;return;}}
+  const k=roomAt({x:o.x,y:o.y-4}),from=roomAt({x:home.x,y:home.y-4});
+  if(k==='lounge'&&from!=='lounge'){o.fun={type:'sit',t:2800,home};return;}
+  const mine=o.role?HAB[o.role].room:'plan';
+  if(k&&ROOMS[k].ko&&k!==mine&&k!==from){o.fun={type:'huh',t:1700,home};return;}
+  goHome(o,home);}
+function updateFun(town,o,dt){const f=o.fun;
+  if(f.type==='fly'){f.t+=dt;f.vz-=.0011*dt;f.z+=f.vz*dt;const drag=Math.max(0,1-.0012*dt);f.vx*=drag;f.vy*=drag;
+    const bonk=()=>{if(!f.bonk){f.bonk=true;town.fx.push({type:'bonk',x:o.x,y:o.y-16-f.z,t:0});}};
+    const nx=o.x+f.vx*dt;if(canStand(nx,o.y))o.x=nx;else{f.vx=-f.vx*.45;bonk();}
+    const ny=o.y+f.vy*dt;if(canStand(o.x,ny))o.y=ny;else{f.vy=-f.vy*.45;bonk();}
+    if(f.z<=0&&f.vz<0){f.z=0;if(f.vz<-.09&&f.t<3500){f.vz=-f.vz*.42;f.vx*=.55;f.vy*=.55;}
+      else if(f.bonk)o.fun={type:'dizzy',t:2000,home:f.home};else{o.fun=null;land(town,o,f.home);}}
+    return;}
+  f.t-=dt;
+  if((f.type==='pet'&&o.role)||(f.type==='greet'&&f.love&&f.t<1000)){f.h=(f.h||0)+dt;if(f.h>320){f.h=0;town.fx.push({type:'heart',x:o.x+rand(-7,7),y:o.y-24,t:0});}}
+  if(f.t<=0){o.fun=null;goHome(o,f.home);}}
+const funLift=o=>{const f=o.fun;if(!f)return 0;if(f.type==='fly')return f.z;if(f.type==='greet'&&f.t<1000)return Math.abs(Math.sin(f.t/110))*4;if(f.type==='pet'&&o.role)return Math.abs(Math.sin(f.t/130))*3;return 0;};
+const funSpin=o=>o.fun&&o.fun.type==='fly'?o.fun.t/75*(o.fun.vx<0?-1:1):o.fun&&o.fun.type==='dizzy'?Math.sin(now.t/140)*.12:0;
+function drawHeart(x,y,a=1){const rows=['.XX.XX.','XXXXXXX','XXXXXXX','.XXXXX.','..XXX..','...X...'];ctx.save();ctx.globalAlpha=a;ctx.fillStyle='#ff6b9a';
+  rows.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(r[i]==='X')ctx.fillRect(px(x-3.5+i),px(y+j),S,S);});ctx.restore();}
+function anger(x,y){if(Math.floor(now.t/220)%2)return;ctx.fillStyle='#e83838';for(const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){ctx.fillRect(px(x+sx*2-(sx<0?1:0)),px(y+sy*1.5),S,S*1.6);ctx.fillRect(px(x+sx*1.5),px(y+sy*2-(sy<0?1:0)),S*1.6,S);}}
+// 잡고 있는 동안: 3초 넘으면 화남, 트레이너는 6초 넘으면 "놔 주세요!" (포켓몬은 몬스터볼에 들어갔다 나와요)
+function grabMarks(o,h){const held=now.t-(o.grabSince||now.t);if(held>3000)anger(o.x+10,o.y-h-1);if(!o.role&&held>6000)bubble(o.x,o.y,'놔 주세요!','#ffe1e1',h+8);}
+function funMarks(o,h){const f=o.fun;
+  if(f.type==='dizzy'){for(let i=0;i<3;i++){const a=now.t/190+i*2.09;const sx=o.x+Math.cos(a)*9,sy=o.y-h-1+Math.sin(a)*3;ctx.fillStyle='#ffe066';ctx.fillRect(px(sx-1),px(sy),3*S,S);ctx.fillRect(px(sx),px(sy-1),S,3*S);}}
+  if(f.type==='huh')bubble(o.x,o.y,'여기 아닌데…?','#fff',h+4);
+  if(f.type==='sit'){ctx.font=`${5*S}px 'Press Start 2P'`;ctx.fillStyle='#e8a0c0';ctx.fillText('♪',px(o.x+8),px(o.y-h-((now.t/300)%6)));if(f.t>1500)bubble(o.x,o.y,'잠깐 쉬었다 갈게요','#ffe9f3',h+6);}
+  if(f.type==='greet'&&f.t>1000){ctx.font=`${7*S}px 'Press Start 2P'`;ctx.fillStyle='#e8a020';ctx.fillText('!',px(o.x-2),px(o.y-h-4));}
+  if(f.type==='pet'&&!o.role)bubble(o.x,o.y,'착하다~','#ffe1ec',h+4);}
+function grabStart(){if(!grab||grab.on)return;grab.on=true;grab.o.grabbed=true;grab.o.fun=null;grab.o.grabSince=now.t;grab.o.ballAt=0;grab.o.ballPop=false;cv.style.cursor='grabbing';grabMove(grab.p);}
 function grabMove(p){const o=grab.o;o.x=Math.max(T,Math.min(BW-T,p.x));o.y=Math.max(T+14,Math.min(BH-4,p.y+14));}
 let downAt=null;
 cv.addEventListener('pointerdown',e=>{const p=toGame(e);const o=hitEntity(p);if(!o){downAt={p,x:e.clientX,y:e.clientY};return;}e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch{}
-  grab={o,p,on:false,home:{x:o.x,y:o.y},t:setTimeout(grabStart,160)};});
+  grab={o,p,on:false,hist:[],home:o.fun&&o.fun.home?o.fun.home:{x:o.x,y:o.y},t:setTimeout(grabStart,160)};});
 function showTip(e,html){const t=$('tip');if(!html){t.hidden=true;return;}t.innerHTML=html;t.hidden=false;
   const w=t.offsetWidth,h=t.offsetHeight;let x=e.clientX+16,y=e.clientY+18;if(x+w>innerWidth-8)x=e.clientX-w-12;if(y+h>innerHeight-8)y=e.clientY-h-12;t.style.left=x+'px';t.style.top=y+'px';}
 const esc=v=>String(v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1049,11 +1096,14 @@ function tipFor(p){const t=towns.get(active);const o=hitEntity(p);
   return `<b>${r.ko}</b><span class="st" style="background:${r.tag}">${r.stage}</span><br><span style="white-space:nowrap">${esc(r.desc||'')}</span>${ROOM_LABEL_TOOLS[k]?`<br><span style="opacity:.75">${esc(ROOM_LABEL_TOOLS[k])}</span>`:''}<br>${st}<small>클릭하면 자세히 보기</small>`;}
 cv.addEventListener('pointerleave',()=>{hoverRoom=null;hoverEnt=null;showTip(null,'');});
 cv.addEventListener('pointermove',e=>{const p=toGame(e);if(!grab){const o=hitEntity(p);hoverEnt=o||null;hoverRoom=o?null:(roomAt(p)||null);cv.style.cursor=o?'grab':hoverRoom?'pointer':'';showTip(e,tipFor(p));return;}showTip(null,'');
-  grab.p=p;if(!grab.on&&Math.hypot(p.x-grab.home.x,p.y-grab.home.y+12)>4)grabStart();if(grab.on)grabMove(p);});
-function grabEnd(){if(!grab)return;clearTimeout(grab.t);const {o,home,on,p}=grab;grab=null;cv.style.cursor='';if(!on){if(o.recap&&!o.role)openRecap(o);else openRoomAt(p);return;}o.grabbed=false;
-  if(!walkable(Math.floor(o.x/T),Math.floor((o.y-1)/T))){o.x=home.x;o.y=home.y;}
-  const dest=o.path.length?o.path[o.path.length-1]:home;o.path=Math.hypot(dest.x-o.x,dest.y-o.y)>2?findPath(o.x,o.y,dest.x,dest.y):[];
-  if(o.role)o.back=o.path.length>0;}
+  grab.p=p;grab.hist.push({x:p.x,y:p.y,t:performance.now()});if(grab.hist.length>10)grab.hist.shift();if(!grab.on&&Math.hypot(p.x-grab.home.x,p.y-grab.home.y+12)>4)grabStart();if(grab.on)grabMove(p);});
+function grabEnd(){if(!grab)return;clearTimeout(grab.t);const {o,home,on,p,hist}=grab;grab=null;cv.style.cursor='';if(!on){if(o.recap&&!o.role)openRecap(o);else openRoomAt(p);return;}
+  o.grabbed=false;o.grabSince=0;o.ballAt=0;const town=towns.get(active);
+  const t=performance.now(),rec=hist.filter(h=>t-h.t<110);let vx=0,vy=0;
+  if(rec.length>=2&&t-rec[rec.length-1].t<60){const a=rec[0],b=rec[rec.length-1],d=Math.max(16,b.t-a.t);vx=(b.x-a.x)/d;vy=(b.y-a.y)/d;}
+  const sp=Math.hypot(vx,vy);
+  if(sp>.28&&town&&canStand(o.x,o.y)){const k=Math.min(1,.6/sp);o.fun={type:'fly',vx:vx*k,vy:vy*k*.8,vz:.2+Math.min(sp,.6)*.25,z:0,t:0,home,bonk:false};return;}
+  land(town,o,home);}
 cv.addEventListener('pointerup',e=>{if(grab)return grabEnd();if(downAt&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)<6)openRoomAt(downAt.p);downAt=null;});cv.addEventListener('pointercancel',grabEnd);
 
 
