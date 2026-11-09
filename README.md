@@ -192,6 +192,7 @@ Node·git·스프라이트·서버·훅 연결을 차례로 확인하고, 문제
 ```
 index.html                  화면 (Canvas, 의존성 없음)
 server.mjs                  로컬 서버: 화면, /sprites, /api/names, POST /events, GET /stream (SSE)
+tokens.mjs                  토큰 분석: 대화 기록에서 컨텍스트가 어디서 늘었는지 계산 (/api/tokens)
 hook.mjs                    Claude Code 훅 입력 → OfficeEvent 로 변환해 서버로 전송
 scripts/setup-sprites.mjs   PokeAPI 스프라이트·이름 데이터 sparse checkout
 scripts/install-hooks.mjs   ~/.claude/settings.json 에 훅 추가/제거 (npm run hooks)
