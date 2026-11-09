@@ -121,7 +121,7 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .mini{padding:3px 8px;font-size:11.5px;border-width:2px;border-radius:7px;box-shadow:0 2px 0 var(--shadow)}
 .mini:disabled{opacity:.4;cursor:default}
 #tlPanel{margin-top:16px}
-.rng{display:flex;gap:4px}.rng button{padding:2px 7px;font-size:11px;border-width:2px;border-radius:6px;box-shadow:none}
+.rng{display:flex;gap:4px}.rng[hidden]{display:none}.rng button{padding:2px 7px;font-size:11px;border-width:2px;border-radius:6px;box-shadow:none}
 .tlrow{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:center;margin-bottom:6px}
 .tlwho{font-family:'Press Start 2P',monospace;font-size:8px;color:#fff;text-align:center;padding:5px 0;border-radius:6px}
 .tltrack{position:relative;background:var(--panel2);border-radius:6px;overflow:hidden}
@@ -150,6 +150,20 @@ pre{font-size:11.5px;background:#14111a;border-radius:10px;padding:8px;overflow:
 .logtags{display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px;border-bottom:3px dashed var(--line)}
 .logtags button{padding:3px 10px;font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;border-width:2px;border-radius:999px;box-shadow:none;background:var(--panel2)}
 .logtags button small{font-weight:400;color:var(--quiet);font-size:11px}.logtags button.on{background:#1f3a2a;border-color:var(--leaf)}
+.tsum{font-size:12.5px;color:var(--quiet);margin:0 0 8px;word-break:keep-all}.tsum b{color:var(--ink);font-weight:600}
+.turn{padding:8px 10px;border-radius:10px;background:var(--panel2);margin-bottom:7px;cursor:pointer;border:2px solid transparent;transition:border-color .12s}
+.turn:hover{border-color:#c4a874}
+.turn .th{display:flex;align-items:center;gap:8px;min-width:0}
+.turn canvas{width:22px;height:22px;border-radius:6px;image-rendering:pixelated;flex:none}
+.turn .tp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+.turn .tm2{font-size:11.5px;color:var(--quiet);white-space:nowrap}
+.badge{font-size:11px;padding:1px 7px;border-radius:6px;color:#fff;white-space:nowrap}
+.turn.run .badge{animation:pulse 1s infinite}
+.tbar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:7px 0 5px;background:#3a3348;gap:1px}
+.tbar i{min-width:3px}.tbar i.wait{background:repeating-linear-gradient(45deg,#f0a020 0 4px,#b87510 4px 8px)}.tbar i.think{background:#5a5468}
+.turn .ts{display:flex;justify-content:space-between;gap:4px 12px;flex-wrap:wrap;font-size:12px;color:var(--quiet)}
+.turn .tf{font-size:12px;color:#c8b898;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tmore{width:100%;padding:5px;font-size:12px;border-width:2px;box-shadow:none}
 footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
 .speed{display:flex;gap:4px}
 </style>
@@ -176,8 +190,8 @@ footer{margin-top:18px;color:var(--quiet);font-size:12px;line-height:1.6}
       <div class="stage"><canvas id="office" width="2048" height="1280" aria-label="픽셀 사무실"></canvas></div>
       <div id="dlgBox"><i id="dlgDot"></i><span id="dlgText"></span><button class="more" id="dlgMore" hidden title="더보기">▾</button></div>
       <section class="panel" id="tlPanel">
-        <h2>작업 타임라인 <span class="rng" id="tlRange"><button data-m="1">1분</button><button data-m="5">5분</button><button data-m="15" class="on">15분</button><button data-m="60">1시간</button></span></h2>
-        <div class="body"><div id="tl"></div><div class="tllegend" id="tlLegend"></div></div>
+        <h2>작업 타임라인 <span style="display:flex;gap:10px;align-items:center"><span class="rng" id="tlRange" hidden><button data-m="1">1분</button><button data-m="5">5분</button><button data-m="15" class="on">15분</button><button data-m="60">1시간</button></span><span class="rng" id="tlMode"><button data-v="turn" class="on">요청별</button><button data-v="time">시간축</button></span></span></h2>
+        <div class="body"><div id="turns"></div><div id="tl" hidden></div><div class="tllegend" id="tlLegend"></div></div>
       </section>
     </div>
 
@@ -513,7 +527,7 @@ const now={t:0};let speed=1,paused=false;const timers=[];const sleep=ms=>new Pro
 const towns=new Map();let active=null;const dexStats={};ROLES.forEach(r=>dexStats[r]={count:0,last:''});
 let LIVE=false;const IDLE_MS=()=>LIVE?5*60e3:30e3;
 function getTown(name){let t=towns.get(name);if(t)return t;
-  t={name,trainers:new Map(),mons:[],jobs:[],hist:[],marks:[],todos:[],growth:{done:0,edits:0,plants:0,trophies:0},lastTest:null,ticker:[],fx:[]};
+  t={name,trainers:new Map(),mons:[],jobs:[],hist:[],marks:[],turns:[],todos:[],growth:{done:0,edits:0,plants:0,trophies:0},lastTest:null,ticker:[],fx:[]};
   towns.set(name,t);if(!active)active=name;renderTowns();return t;}
 function mkMon(role,helper,at){const p=at||randomFloor(HAB[role].room);return{role,helper,x:p.x,y:p.y,path:[],state:'wander',pause:rand(300,2500),idle:0,job:null,face:1,t:0,carry:false};}
 function goTo(o,x,y){o.path=findPath(o.x,o.y,x,y);}
@@ -540,36 +554,51 @@ const actText=a=>`${a.tool} · ${a.label}`;
 function ticker(town,text,tr){town.ticker.push({text,tr:tr?tr.no:null,color:tr?tr.color:null});if(town.ticker.length>30)town.ticker.shift();if(town.name===active)dlgSet(text,tr);}
 
 // event entry (demo + live share this)
+// ───────── 요청(턴): 프롬프트 하나부터 답변이 끝날 때까지
+const curTurn=tr=>tr.turn&&tr.turn.t1==null?tr.turn:null;
+function startTurn(town,tr,text,late){const old=curTurn(tr);if(old){old.t1=now.t;old.wall1=Date.now();old.why=old.why||'next';}
+  const u={tr,text:text||'',late:!!late,t0:now.t,wall0:Date.now(),t1:null,wall1:null,why:null,items:[],waits:[],files:[],tok:{out:0,fresh:0,ctx:0,calls:0}};
+  tr.turn=u;town.turns.push(u);if(town.turns.length>100)town.turns.shift();return u;}
+const turnOf=(town,tr)=>curTurn(tr)||startTurn(town,tr,tr.prompt,true);
+function closeWait(tr){const u=tr.turn;const w=u&&u.waits[u.waits.length-1];if(w&&w.e==null)w.e=now.t;}
+function openWait(tr){const u=curTurn(tr);if(u&&!(u.waits.length&&u.waits[u.waits.length-1].e==null))u.waits.push({s:now.t,e:null});}
+function endTurn(tr,why){const u=curTurn(tr);if(!u)return;closeWait(tr);u.t1=now.t;u.wall1=Date.now();u.why=why;}
 function handleEvent(ev){
   if(ev.session&&CLOSED.has(ev.session)){if(ev.kind!=='prompt'&&ev.kind!=='session_start')return;CLOSED.delete(ev.session);}
   if(ev.soft){const tn=ev.town||(ev.cwd?String(ev.cwd).split(/[\\/]/).filter(Boolean).pop():'my-project');const tw=towns.get(tn);if(!tw||!tw.trainers.has(ev.session))return;}
   const town=getTown(ev.town||(ev.cwd?String(ev.cwd).split(/[\\/]/).filter(Boolean).pop():'my-project'));
   let tr=getTrainer(town,ev.session||'local');if(tr.state==='leave'&&ev.kind!=='session_end'){town.trainers.delete(tr.id);tr=getTrainer(town,ev.session||'local');}tr.last=now.t;if(tr.state==='sleep')tr.state='idle';
   const act=resolveAction(ev.tool,ev);const role=act.role;
+  if(!['notify','usage','say','recap'].includes(ev.kind)&&!(ev.kind==='tool_start'&&role==='ask'))closeWait(tr);
   switch(ev.kind){
     case 'session_start':break;
-    case 'prompt':toSeat(tr);tr.promptAt=Date.now();tr.recap=null;tr.prompt=ev.full||ev.detail||'';town.marks.push({t:now.t,wall:Date.now(),tr,text:tr.prompt});if(town.marks.length>200)town.marks.shift();tr.state='think';tr.bubble=`"${(ev.detail||'').slice(0,16)}"`;setTimeout(()=>{if(tr.bubble&&tr.bubble.startsWith('"'))tr.bubble='…';},2500/speed);
+    case 'prompt':startTurn(town,tr,ev.full||ev.detail||'');toSeat(tr);tr.promptAt=Date.now();tr.recap=null;tr.prompt=ev.full||ev.detail||'';town.marks.push({t:now.t,wall:Date.now(),tr,text:tr.prompt});if(town.marks.length>200)town.marks.shift();tr.state='think';tr.bubble=`"${(ev.detail||'').slice(0,16)}"`;setTimeout(()=>{if(tr.bubble&&tr.bubble.startsWith('"'))tr.bubble='…';},2500/speed);
 
       ticker(town,`${tname(tr)}: "${tr.prompt||'새 지시'}"`,tr);log('prompt',`${town.name}·${tr.no} ${tr.prompt}`);break;
     case 'tool_start':
       if(role==='plan'){toSeat(tr);if(Array.isArray(ev.todos))town.todos=ev.todos.map(t=>({text:t.text,s:t.status==='completed'?'done':t.status==='in_progress'?'doing':''}));
         tr.state='pin';tr.bubble=actText(act);setTimeout(()=>{tr.bubble=null;tr.state='think';},1400/speed);ticker(town,`${tname(tr)}의 「${actText(act)}」${act.tool==='TodoWrite'||/^Task/.test(act.tool)?` — 할 일 ${town.todos.length}개`:''}`,tr);log('tool_start',`${town.name}·${tr.no} ${act.tool}`);renderSide();break;}
-      if(role==='ask'){toSeat(tr);tr.state='wait';tr.bubble='?';showAlert(town,tr,'Claude가 질문했어요. 터미널에서 답해 주세요.');ticker(town,`${tname(tr)}의 「AskUserQuestion · 질문」! 터미널에서 답을 기다려요`,tr);log('notify',`${town.name}·${tr.no} AskUserQuestion`);break;}
+      if(role==='ask'){toSeat(tr);tr.state='wait';openWait(tr);tr.bubble='?';showAlert(town,tr,'Claude가 질문했어요. 터미널에서 답해 주세요.');ticker(town,`${tname(tr)}의 「AskUserQuestion · 질문」! 터미널에서 답을 기다려요`,tr);log('notify',`${town.name}·${tr.no} AskUserQuestion`);break;}
       if(role==='sub'){spawnSub(town,tr,ev);break;}
       newJob(town,tr,ev,act);break;
     case 'tool_end':{if(act.role==='ask'&&tr.state==='wait'){tr.state='think';tr.bubble='…';clearAlert(tr);}const j=findJob(town,tr,ev);if(j){j.ok=ev.ok!==false;j.endAt=now.t;if(j.role==='test')town.lastTest={ok:j.ok,label:j.label,at:now.t};}break;}
     case 'subagent_end':endSub(town,tr);break;
-    case 'notify':{const msg=ev.full||ev.detail||'';toSeat(tr);tr.state='wait';tr.bubble='!';showAlert(town,tr,msg||'입력을 기다려요');ticker(town,`${tname(tr)}이(가) 부르고 있다! ${msg}`,tr);log('notify',`${town.name}·${tr.no} ${msg}`);break;}
+    case 'notify':{const msg=ev.full||ev.detail||'';toSeat(tr);tr.state='wait';openWait(tr);tr.bubble='!';showAlert(town,tr,msg||'입력을 기다려요');ticker(town,`${tname(tr)}이(가) 부르고 있다! ${msg}`,tr);log('notify',`${town.name}·${tr.no} ${msg}`);break;}
     case 'say':{tr.said=tr.said||new Set();if(tr.said.size>300)tr.said.clear();
       (ev.texts||[]).forEach(t=>{if(!t||tr.said.has(t))return;tr.said.add(t);log('claude',`${town.name}·${tr.no} ${t}`);ticker(town,`Claude(${tname(tr)}): ${t}`,tr);});return;}
     case 'stop':{if(ev.soft&&((tr.promptAt||0)>(ev.at||0)||(tr.lounge&&tr.state==='idle')))return;
       town.jobs.forEach(j=>{if(j.tr===tr&&j.ok===undefined){j.ok=false;j.cancel=true;j.endAt=now.t;}});
       while(town.mons.some(m=>m.role==='sub'&&m.subOf===tr.id&&!['return','recall','vanish','subdone','bye'].includes(m.state)))endSub(town,tr);
-      tr.state='idle';tr.bubble=null;clearAlert(tr);log('stop',`${town.name}·${tr.no} ${ev.why==='interrupt'?'중단됨':'Stop'}`);toLounge(town,tr);}
+      endTurn(tr,ev.why==='interrupt'?'interrupt':'stop');tr.state='idle';tr.bubble=null;clearAlert(tr);log('stop',`${town.name}·${tr.no} ${ev.why==='interrupt'?'중단됨':'Stop'}`);toLounge(town,tr);}
       ticker(town,`${tname(tr)}: 작업 끝! 휴게실에서 쉬면서 다음 지시를 기다려요`,tr);break;
+    case 'usage':{const at=ev.at||Date.now(),fresh=(ev.input||0)+(ev.cacheWrite||0),ctx=fresh+(ev.cacheRead||0);
+      tr.tok=tr.tok||{out:0,fresh:0};tr.tok.out+=ev.output||0;tr.tok.fresh+=fresh;tr.ctx=ctx;
+      const list=town.turns.filter(u=>u.tr===tr&&u.wall0<=at+1500),u=list[list.length-1];
+      if(u){u.tok.out+=ev.output||0;u.tok.fresh+=fresh;u.tok.ctx=ctx;u.tok.calls++;}
+      if(town.name===active)renderTimeline();return;}
     case 'recap':{const text=String(ev.text||'').trim();if(!text||tr.recap&&tr.recap.text===text)return;tr.recap={text,wall:Date.now()};
       log('recap',`${town.name}·${tr.no} ${text}`);ticker(town,`${tname(tr)}의 recap: ${text}`,tr);break;}
-    case 'session_end':leaveTrainer(town,tr,'퇴근!');log('session',`${town.name} · 세션 ${tr.no} 종료`);break;
+    case 'session_end':endTurn(tr,'end');leaveTrainer(town,tr,'퇴근!');log('session',`${town.name} · 세션 ${tr.no} 종료`);break;
   }
   renderTowns();if(town.name===active)renderSide();
 }
@@ -580,12 +609,12 @@ function releaseMon(town,tr,mo){mo.owner=tr;const p=besideTrainer(town,tr);mo.x=
 function recallMon(town,mo){const tr=mo.owner;if(!tr||!town.trainers.has(tr.id)){mo.state='vanish';mo.t=350;town.fx.push({type:'poof',x:mo.x,y:mo.y-10,t:0});return;}
   mo.state='return';const p=besideTrainer(town,tr);goTo(mo,p.x,p.y);}
 function newJob(town,tr,ev,act){const role=act.role;const job={id:ev.id||`${ev.session}:${ev.tool}:${now.t}:${Math.random()}`,tool:act.tool,rawTool:ev.tool,label:act.label,key:`${ev.session}:${ev.tool}`,role,detail:ev.detail||ev.tool,full:ev.full||ev.cmd||ev.detail||ev.tool,tr,ok:undefined,start:now.t,endAt:null,mon:null};
-  job.wall=Date.now();town.jobs.push(job);town.hist.push(job);if(town.hist.length>800)town.hist.shift();tr.state='think';town.restMode=false;
+  job.wall=Date.now();town.jobs.push(job);town.hist.push(job);{const u=turnOf(town,tr);u.items.push(job);if(role==='edit'&&job.detail&&!u.files.includes(job.detail))u.files.push(job.detail);}if(town.hist.length>800)town.hist.shift();tr.state='think';town.restMode=false;
   const mon=mkMon(role,false,{x:tr.x,y:tr.y});town.mons.push(mon);releaseMon(town,tr,mon);
   mon.job=job;job.mon=mon;
   ticker(town,`${tname(tr)}: 가라, ${nameOf(role)}! — 「${actText(act)}」 ${job.detail} (${HAB[role].name})`,tr);log('tool_start',`${town.name}·${tr.no} ${ev.tool} (${act.label}): ${job.full}`);}
 function findJob(town,tr,ev){let j=ev.id&&town.jobs.find(x=>x.id===ev.id&&x.ok===undefined);if(!j)j=town.jobs.find(x=>x.key===`${ev.session}:${ev.tool}`&&x.ok===undefined);if(!j)j=town.jobs.find(x=>x.rawTool===ev.tool&&x.ok===undefined);return j;}
-function spawnSub(town,tr,ev){const mo=mkMon('sub',true,{x:tr.x,y:tr.y});mo.subOf=tr.id;mo.job={detail:ev.detail||'조사',full:ev.full||ev.detail};const rec={role:'sub',tool:'Agent',label:'서브에이전트',detail:ev.detail||'조사',full:ev.full||ev.detail||'',tr,start:now.t,wall:Date.now(),endAt:null,ok:undefined};town.hist.push(rec);mo.rec=rec;mo.afterAppear='subwork';town.mons.push(mo);releaseMon(town,tr,mo);
+function spawnSub(town,tr,ev){const mo=mkMon('sub',true,{x:tr.x,y:tr.y});mo.subOf=tr.id;mo.job={detail:ev.detail||'조사',full:ev.full||ev.detail};const rec={role:'sub',tool:'Agent',label:'서브에이전트',detail:ev.detail||'조사',full:ev.full||ev.detail||'',tr,start:now.t,wall:Date.now(),endAt:null,ok:undefined};town.hist.push(rec);turnOf(town,tr).items.push(rec);mo.rec=rec;mo.afterAppear='subwork';town.mons.push(mo);releaseMon(town,tr,mo);
   ticker(town,`${tname(tr)}의 「Agent · 서브에이전트 출동」! ${josa(nameOf('sub'),'이/가')} 조사하러 나갔다: ${ev.detail||''}`,tr);log('sub',`${town.name}·${tr.no} Task ${ev.detail||''}`);dexStats.sub.count++;dexStats.sub.last=ev.detail||'';renderDex();}
 function endSub(town,tr){const mo=town.mons.find(m=>m.role==='sub'&&m.subOf===tr.id&&!['return','recall','vanish'].includes(m.state));if(!mo)return;if(mo.rec){mo.rec.endAt=now.t;mo.rec.ok=true;}mo.carry=true;recallMon(town,mo);
   ticker(town,`${josa(nameOf('sub'),'이/가')} 조사 결과를 들고 돌아왔다!`,tr);log('sub',`${town.name}·${tr.no} SubagentStop`);}
@@ -668,10 +697,52 @@ function renderSide(){renderWork();renderSessions();renderTimeline();}
 let TLW=15*60e3,tlItems=[];
 const roleColor=r=>r==='sub'?ROOMS.plan.tag:ROOMS[HAB[r].room].tag;
 const wallClock=w=>new Date(w).toTimeString().slice(0,8);
-function renderTimeline(){const el=$('tl');if(!el)return;const t=towns.get(active);tlItems=[];
+let TLMODE=store.get('pokeoffice.tlmode')||'turn',TL_ALL=false;
+const fmtK=n=>n>=1e6?(n/1e6).toFixed(n<1e7?2:1)+'M':n>=1e3?(n/1e3).toFixed(n<1e4?1:0)+'k':String(n);
+const GROUPS=[['research','조사'],['dev','수정'],['test','검증'],['term','실행'],['plan','서브에이전트']];
+const roomOfItem=j=>j.role==='sub'?'plan':HAB[j.role].room;
+// 한 요청의 시간 분배: 방별 작업 시간 · 승인 대기 · 그 밖(생각 중)
+function turnStats(u){const end=u.t1??now.t,total=Math.max(1,end-u.t0),by={};let iv=[];
+  u.items.forEach(j=>{const s0=Math.max(u.t0,j.start),e0=Math.min(end,j.endAt??end);if(e0<=s0)return;const k=roomOfItem(j);by[k]=(by[k]||0)+(e0-s0);iv.push([s0,e0]);});
+  iv.sort((a,b)=>a[0]-b[0]);let busy=0,cs=-1,ce=-1;iv.forEach(([a,b])=>{if(a>ce){if(ce>cs)busy+=ce-cs;cs=a;ce=b;}else ce=Math.max(ce,b);});if(ce>cs)busy+=ce-cs;
+  const wait=u.waits.reduce((n,w)=>n+Math.max(0,(w.e??end)-w.s),0);return{total,by,wait,think:Math.max(0,total-busy-wait)};}
+function turnBadge(u){const fails=u.items.filter(j=>j.ok===false&&!j.cancel);
+  if(u.t1==null)return u.waits.some(w=>w.e==null)?['승인 대기','#e0a020']:['진행 중','#5a7ad0'];
+  if(u.why==='interrupt')return['중단','#7a7a8a'];if(fails.some(j=>j.role==='test'))return['테스트 실패','#e85a5a'];if(fails.length)return['일부 실패','#d07a40'];return['완료','#48a060'];}
+const fmtDur=ms=>ms<10e3?(Math.max(0,ms)/1000).toFixed(1)+'s':fmtSec(ms);
+function turnDetail(u){const st=turnStats(u),[b]=turnBadge(u),pct=v=>Math.round(v/st.total*100);
+  const lines=[`보낸 시각 ${wallClock(u.wall0)} / 걸린 시간 ${fmtSec(st.total)} / 상태 ${b}`,'',`요청${u.late?' (화면을 연 뒤 이어진 요청)':''}`,u.text||'(내용 없음)','','시간 분배'];
+  GROUPS.forEach(([k,n])=>{if(st.by[k])lines.push(`  ${n} ${fmtDur(st.by[k])} (${pct(st.by[k])}%)`);});
+  if(st.wait)lines.push(`  승인 / 답변 대기 ${fmtDur(st.wait)} (${pct(st.wait)}%)`);if(st.think)lines.push(`  그 밖(생각 / 답변 작성) ${fmtDur(st.think)} (${pct(st.think)}%)`);
+  lines.push('','토큰',u.tok.calls?`  출력 ${fmtK(u.tok.out)} / 새 입력 ${fmtK(u.tok.fresh)} / 컨텍스트 ${fmtK(u.tok.ctx)} (응답 ${u.tok.calls}번)`:'  아직 받은 사용량이 없어요');
+  if(u.files.length){lines.push('','수정한 파일');u.files.forEach(f=>lines.push('  '+f));}
+  if(u.items.length){lines.push('','실행한 순서');u.items.forEach(j=>{const s2=j.cancel?'중단':j.ok===undefined?'진행 중':j.ok?'완료':'실패';
+    lines.push(`  +${fmtSec(j.start-u.t0)}  ${j.tool} ${j.label}  ${String(j.detail||'').slice(0,60)}  ${s2}${j.endAt!=null?` (${fmtDur(j.endAt-j.start)})`:''}`);});}
+  return lines.join('\n');}
+function renderTurns(){const el=$('turns'),t=towns.get(active);
+  if(!t||!t.turns.length){el.innerHTML='<div class="empty">아직 받은 요청이 없어요.<br><span style="font-size:12px">Claude Code에 프롬프트를 보내면 요청마다 카드가 생겨요.</span></div>';return;}
+  const all=[...t.turns].reverse(),list=TL_ALL?all:all.slice(0,6);
+  const out=t.turns.reduce((n,u)=>n+u.tok.out,0),fresh=t.turns.reduce((n,u)=>n+u.tok.fresh,0);
+  el.innerHTML=`<div class="tsum">요청 <b>${t.turns.length}</b>개${out||fresh?` / 출력 <b>${fmtK(out)}</b> / 새 입력 <b>${fmtK(fresh)}</b> 토큰`:''}</div>`;
+  list.forEach(u=>{const st=turnStats(u),[bl,bc]=turnBadge(u),d=document.createElement('div');d.className='turn'+(u.t1==null?' run':'');
+    const counts=GROUPS.map(([k,n])=>{const c=u.items.filter(j=>roomOfItem(j)===k).length;return c?`${n} ${c}`:'';}).filter(Boolean).join(' / ')||'툴 없이 답변';
+    const seg=[...GROUPS.map(([k])=>st.by[k]?`<i style="flex:${st.by[k]};background:${ROOMS[k].tag}"></i>`:''),st.wait?`<i class="wait" style="flex:${st.wait}"></i>`:'',st.think?`<i class="think" style="flex:${st.think}"></i>`:''].join('');
+    d.innerHTML=`<div class="th"><canvas width="44" height="44" style="background:${HATS[u.tr.color][0]}"></canvas><span class="tp"></span><span class="tm2">${wallClock(u.wall0).slice(0,5)} / ${fmtSec(st.total)}</span><span class="badge" style="background:${bc}">${bl}</span></div>
+      <div class="tbar">${seg}</div><div class="ts"><span>${counts}</span><span>${u.tok.calls?`출력 ${fmtK(u.tok.out)} / 새 입력 ${fmtK(u.tok.fresh)}`:''}</span></div>${u.files.length?'<div class="tf"></div>':''}`;
+    d.querySelector('.tp').textContent=u.text?`"${u.text}"`:'(화면을 연 뒤 이어진 요청)';if(u.files.length)d.querySelector('.tf').textContent='수정한 파일 '+u.files.join(', ');
+    faceThumb(d.querySelector('canvas'),trainerImg(u.tr.color,0));
+    tipOn(d,()=>{const s3=turnStats(u),pc=v=>Math.round(v/s3.total*100);const parts=GROUPS.filter(([k])=>s3.by[k]).map(([k,n])=>`${n}&nbsp;${pc(s3.by[k])}%`);if(s3.wait)parts.push(`대기&nbsp;${fmtSec(s3.wait)}`);if(s3.think)parts.push(`생각&nbsp;${pc(s3.think)}%`);
+      return `<b>${esc(tname(u.tr))}</b><span class="st" style="background:${turnBadge(u)[1]}">${turnBadge(u)[0]}</span><br>${parts.join(' / ')||'아직 기록이 없어요'}${u.tok.calls?`<br><span style="opacity:.75">컨텍스트 ${fmtK(u.tok.ctx)} / 응답 ${u.tok.calls}번</span>`:''}`;});
+    d.onclick=()=>{showTip(null,'');openModal(`${tname(u.tr)} 요청 ${wallClock(u.wall0)}`,turnDetail(u));};el.appendChild(d);});
+  if(all.length>6){const b=document.createElement('button');b.className='tmore';b.textContent=TL_ALL?'최근 6개만 보기':`이전 요청 ${all.length-6}개 더 보기`;b.onclick=()=>{TL_ALL=!TL_ALL;renderTurns();};el.appendChild(b);}}
+function renderTimeline(){$('turns').hidden=TLMODE!=='turn';$('tl').hidden=TLMODE==='turn';$('tlRange').hidden=TLMODE==='turn';
+  const lg=$('tlLegend');if(lg.dataset.m!==TLMODE){lg.dataset.m=TLMODE;lg.innerHTML=[['research','조사'],['dev','수정'],['test','검증'],['term','실행/외부'],['plan','서브에이전트']].map(([k,n])=>`<span><i style="background:${ROOMS[k].tag}"></i>${n}</span>`).join('')+
+    (TLMODE==='turn'?'<span><i style="background:repeating-linear-gradient(45deg,#f0a020 0 3px,#b87510 3px 6px)"></i>승인 대기</span><span><i style="background:#5a5468"></i>생각 / 답변 작성</span>':'<span><i style="background:#ff6b6b"></i>실패</span><span><i style="background:#fff;width:2px;height:10px"></i>프롬프트</span>');}
+  if(TLMODE==='turn')return renderTurns();
+  const el=$('tl');if(!el)return;const t=towns.get(active);tlItems=[];
   const t1=now.t,t0=t1-TLW,pct=v=>Math.max(0,Math.min(100,(v-t0)/TLW*100));
   const items=t?t.hist.filter(j=>(j.endAt??t1)>=t0):[],marks=t?t.marks.filter(m=>m.t>=t0):[];
-  if(!items.length&&!marks.length){el.innerHTML='<div class="empty">이 시간 동안 기록된 작업이 없어요.<br><span style="font-size:12px">Claude Code가 툴을 쓰면 여기에 시간순으로 쌓여요.</span></div>';$('tlLegend').innerHTML='';return;}
+  if(!items.length&&!marks.length){el.innerHTML='<div class="empty">이 시간 동안 기록된 작업이 없어요.<br><span style="font-size:12px">Claude Code가 툴을 쓰면 여기에 시간순으로 쌓여요.</span></div>';return;}
   const rows=new Map();const rowOf=tr=>{if(!rows.has(tr.no))rows.set(tr.no,{tr,blocks:[],marks:[]});return rows.get(tr.no);};
   items.forEach(j=>rowOf(j.tr).blocks.push(j));marks.forEach(m=>rowOf(m.tr).marks.push(m));
   let html='';
@@ -685,8 +756,7 @@ function renderTimeline(){const el=$('tl');if(!el)return;const t=towns.get(activ
   // 눈금은 딱 떨어지게: 1분=15초 간격, 5분=1분, 15분=3분, 1시간=15분
   const m=TLW/60e3,n={1:4,5:5,15:5,60:4}[m]||4,lab=v=>v<1?`${Math.round(v*60)}초`:`${v}분`;
   html+=`<div class="tlaxis">${Array.from({length:n},(_,i)=>`<span>-${lab(m*(n-i)/n)}</span>`).join('')}<span>지금</span></div>`;
-  el.innerHTML=html;
-  if(!$('tlLegend').innerHTML)$('tlLegend').innerHTML=[['research','조사'],['dev','수정'],['test','검증'],['term','실행·외부'],['plan','서브에이전트']].map(([k,n])=>`<span><i style="background:${ROOMS[k].tag}"></i>${n}</span>`).join('')+'<span><i style="background:#ff6b6b"></i>실패</span><span><i style="background:#fff;width:2px;height:10px"></i>프롬프트</span>';}
+  el.innerHTML=html;}
 function tlInfo(it){if(it.type==='mark'){const m=it.m;return{title:`${tname(m.tr)} · 프롬프트`,tip:`<b>${tname(m.tr)}</b><span class="st" style="background:${HATS[m.tr.color][0]}">프롬프트</span><br>"${esc(m.text.slice(0,60))}${m.text.length>60?'…':''}"<small>${wallClock(m.wall)} · 클릭하면 전체 보기</small>`,body:`보낸 시각: ${wallClock(m.wall)}\n\n${m.text}`};}
   const j=it.j,st=j.cancel?'중단':j.ok===undefined?'진행 중':j.ok?'완료':'실패',dur=fmtSec((j.endAt??now.t)-j.start);
   return{title:`${tname(j.tr)} · ${j.tool} ${j.label}`,tip:`<b>${esc(j.tool)} · ${esc(j.label)}</b><span class="st" style="background:${j.ok===false?'#e85a5a':roleColor(j.role)}">${st}</span><br>${esc(String(j.detail||'').slice(0,50))}<small>${tname(j.tr)} · ${wallClock(j.wall)} 시작 · ${dur}</small>`,
@@ -694,6 +764,7 @@ function tlInfo(it){if(it.type==='mark'){const m=it.m;return{title:`${tname(m.tr
 $('tl').addEventListener('mousemove',e=>{const b=e.target.closest('[data-i]');if(!b)return showTip(null,'');const it=tlItems[+b.dataset.i];if(it)showTip(e,tlInfo(it).tip);});
 $('tl').addEventListener('mouseleave',()=>showTip(null,''));
 $('tl').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b)return;const it=tlItems[+b.dataset.i];if(!it)return;const x=tlInfo(it);showTip(null,'');openModal(x.title,x.body);});
+document.querySelectorAll('#tlMode button').forEach(b=>{b.classList.toggle('on',b.dataset.v===TLMODE);b.onclick=()=>{document.querySelectorAll('#tlMode button').forEach(x=>x.classList.toggle('on',x===b));TLMODE=b.dataset.v;store.set('pokeoffice.tlmode',TLMODE);showTip(null,'');renderTimeline();};});
 document.querySelectorAll('#tlRange button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tlRange button').forEach(x=>x.classList.toggle('on',x===b));TLW=+b.dataset.m*60e3;renderTimeline();});
 // 세션 찾기: 훅이 아직 안 들어온(이미 열려 있던) Claude Code 세션도 대화 기록 폴더에서 찾아 트레이너로 불러와요
 async function findSessions(){const btn=$('findSess'),msg=$('findMsg');if(!SRC.server){msg.textContent='서버에서만 쓸 수 있어요';return;}
@@ -724,7 +795,7 @@ function renderWork(){const t=towns.get(active);const el=$('workList');if(!el)re
 function renderSessions(){const t=towns.get(active);const el=$('sessList');if(!el)return;
   if(!t||!t.trainers.size){el.innerHTML=`<div class="empty">${LIVE?'Claude Code를 실행하면 트레이너가 출근해요.':'세션이 없어요.'}</div>`;return;}
   el.innerHTML='';const g=t.growth;
-  t.trainers.forEach(tr=>{if(tr.state==='leave')return;const c=document.createElement('div');c.className='wrow';c.dataset.sid=tr.id;tipOn(c,()=>{const n=t.jobs.filter(j=>j.tr===tr).length;return `<b>${esc(tname(tr))}</b><span class="st" style="background:${HATS[tr.color][0]}">${stateText(tr)}</span>${tr.prompt?`<br>"${esc(cut(tr.prompt,60))}"`:''}<br><span style="opacity:.75">세션 ID ${esc(String(tr.id).slice(0,8))} / 작업 ${n}개</span>`;});
+  t.trainers.forEach(tr=>{if(tr.state==='leave')return;const c=document.createElement('div');c.className='wrow';c.dataset.sid=tr.id;tipOn(c,()=>{const n=t.jobs.filter(j=>j.tr===tr).length;return `<b>${esc(tname(tr))}</b><span class="st" style="background:${HATS[tr.color][0]}">${stateText(tr)}</span>${tr.prompt?`<br>"${esc(cut(tr.prompt,60))}"`:''}<br><span style="opacity:.75">세션 ID ${esc(String(tr.id).slice(0,8))} / 작업 ${n}개</span>${tr.tok?`<br><span style="opacity:.75">출력 ${fmtK(tr.tok.out)} / 새 입력 ${fmtK(tr.tok.fresh)} / 컨텍스트 ${fmtK(tr.ctx||0)}</span>`:''}`;});
     const st=tr.lounge&&tr.state==='idle'?'휴게실에서 휴식 중':({idle:'대기 중',think:'작업 중',pin:'할 일 정리',wait:'⚠ 승인·답변 필요',sleep:'쉬는 중',arrive:'출근 중',leave:'퇴근 중'}[tr.state]||tr.state);
     const jobs=t.jobs.filter(j=>j.tr===tr).length;
     c.innerHTML=`<canvas class="face" width="48" height="48" style="background:${HATS[tr.color][0]}"></canvas><div class="txt"><div class="a"></div><div class="b"></div></div><button class="more" hidden title="더보기">▾</button><div class="tm" style="color:${tr.state==='wait'?'var(--amber)':'var(--quiet)'}">${tr.recap?'<button class="recapb" title="recap 보기">!</button>':''}${jobs?jobs+'건':''}</div>`;

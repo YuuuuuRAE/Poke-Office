@@ -90,8 +90,9 @@ function readLimits() {
 }
 
 // ── 대화 기록 지켜보기: 훅이 없는 순간을 메워요 (3초마다 새로 붙은 줄만 읽음)
-//   recap(자리 비운 동안의 요약) → recap,  Esc 중단 · 턴 종료 → stop (화면에 이미 있는 트레이너에게만 적용)
+//   recap(자리 비운 동안의 요약) → recap,  Esc 중단 · 턴 종료 → stop,  응답마다 토큰 → usage (화면에 이미 있는 트레이너에게만 적용)
 const tails = new Map(); // 파일 → 읽은 위치
+const seenMsg = new Set(); // 한 응답이 여러 줄로 남아서 응답 ID로 한 번만 셈
 function watchTranscripts() {
   const since = Date.now() - 30 * 60e3;
   let dirs = [];
@@ -122,6 +123,12 @@ function watchTranscripts() {
         const base = { ts: Date.now(), soft: true, session: e.sessionId, cwd: e.cwd, agent: 'main', at: Date.parse(e.timestamp) || Date.now() };
         if (e.type === 'system' && e.subtype === 'away_summary' && typeof e.content === 'string') {
           broadcast({ ...base, kind: 'recap', text: e.content.replace(/\s*\(disable recaps in \/config\)\s*$/, '').slice(0, 4000) });
+        } else if (e.type === 'assistant' && e.message?.usage && e.message.id) {
+          if (seenMsg.has(e.message.id)) continue;
+          if (seenMsg.size > 20000) seenMsg.clear();
+          seenMsg.add(e.message.id);
+          const u = e.message.usage;
+          broadcast({ ...base, kind: 'usage', model: e.message.model, input: u.input_tokens || 0, output: u.output_tokens || 0, cacheRead: u.cache_read_input_tokens || 0, cacheWrite: u.cache_creation_input_tokens || 0 });
         } else if (e.type === 'system' && e.subtype === 'turn_duration') {
           broadcast({ ...base, kind: 'stop', why: 'turn' });
         } else if (e.type === 'user') {
